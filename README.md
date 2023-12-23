@@ -1,2 +1,8 @@
 # repo-and-module-indexerr
 A CLI tool for indexing all git repos and code projects on your computer
+
+## Usage
+
+```bash
+repo-and-module-indexerr find-repo [-alfred] [search arguments]
+```
