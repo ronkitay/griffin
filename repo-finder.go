@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"path/filepath"
+)
 
 func findRepo(executableName string, alfredOutput bool, args []string) {
 	allRepos := loadIndex()
@@ -19,6 +22,6 @@ func findRepo(executableName string, alfredOutput bool, args []string) {
 
 func printPaths(matchingRepos []RepoData) {
 	for _, repo := range matchingRepos {
-		fmt.Println(repo.repoDir)
+		fmt.Println(filepath.Join(repo.repoDir, repo.repoName))
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 func asAlfred(matchingRepos []RepoData) string {
@@ -27,15 +28,16 @@ func asAlfred(matchingRepos []RepoData) string {
 }
 
 func buildAlfredItem(repo RepoData) Item {
+	repoFullPath := filepath.Join(repo.repoDir, repo.repoName)
 	switch repo.locationType {
 	case "dir":
-		return buildDirectoryLocation(repo.repoDir, repo.repoName)
+		return buildDirectoryLocation(repoFullPath, repo.repoName)
 	case "archive":
-		return buildArchiveLocation(repo.repoDir, repo.repoName, repo.url)
+		return buildArchiveLocation(repoFullPath, repo.repoName, repo.url)
 	case "gitlab":
 		fallthrough
 	case "github":
-		return buildGitRepoLocation(repo.repoDir, repo.repoName, repo.url, repo.locationType)
+		return buildGitRepoLocation(repoFullPath, repo.repoName, repo.url, repo.locationType)
 	default:
 		panic("Unsupported locationType: " + repo.locationType)
 	}

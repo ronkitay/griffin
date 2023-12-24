@@ -80,5 +80,5 @@ func runFindRepoCommand(executableName string) {
 }
 
 func runBuildRepoIndexCommand(executableName string) {
-	panic("unimplemented")
+	buildRepoIndex()
 }

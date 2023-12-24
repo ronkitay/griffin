@@ -1,3 +1,3 @@
 #!/bin/sh
 
-go build -trimpath -ldflags "-s -w" && cp repo-and-module-indexerr ${HOME}/tools/
+go build -trimpath -ldflags "-s -w" -o griffin && cp griffin ${HOME}/tools/
