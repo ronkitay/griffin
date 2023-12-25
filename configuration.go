@@ -29,8 +29,8 @@ func fileExists(filename string) (bool, error) {
 }
 
 func loadConfiguration() Configuration {
-	configurationDirectory := os.Getenv("HOME") + "/.config/rr"
-	repoListLocation := configurationDirectory + "/rr.list"
+	configurationDirectory := os.Getenv("HOME") + "/.config/griffin"
+	repoListLocation := configurationDirectory + "/repo.list"
 
 	var userConfiguration UserConfiguration
 

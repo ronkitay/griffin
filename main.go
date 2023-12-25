@@ -10,10 +10,10 @@ type CommandHandler func(*Command, string)
 
 type Command struct {
 	name, description string
-	handler CommandHandler
+	handler           CommandHandler
 }
 
-var COMMANDS = []Command {
+var COMMANDS = []Command{
 	{"find-repo", "Finds repositories based on given filters", runFindRepoCommand},
 	{"build-repo-index", "Builds the repository index", runBuildRepoIndexCommand},
 	{"find-project", "Finds projects based on given filters", runFindProjectCommand},
@@ -21,11 +21,12 @@ var COMMANDS = []Command {
 	{"shell-integration", "Generates Shell Integration commands", runShellIntegrationCommand},
 	{"configure", "Configure the tool", runConfigureCommand},
 }
+
 const (
 	RESET_COLORS = "\033[0m"
-	BOLD_COLOR = "\033[1m"
+	BOLD_COLOR   = "\033[1m"
 
-	RED_COLOR = "\033[31m"
+	RED_COLOR   = "\033[31m"
 	GREEN_COLOR = "\033[32m"
 	WHITE_COLOR = "\033[37m"
 )
@@ -63,13 +64,13 @@ func printToolHelp(executableName string) {
 	fmt.Printf("  %s commandName [options]\n", executableName)
 	fmt.Println("Commands:")
 	for _, commandName := range COMMANDS {
-		printSingleCommandDescription(commandName.name, commandName.description)	
+		printSingleCommandDescription(commandName.name, commandName.description)
 	}
 	os.Exit(255)
 }
 
 func printSingleCommandDescription(commandName, commandHelp string) {
-	fmt.Printf("\t" + GREEN_COLOR + "%-20s" + RESET_COLORS + " %s\n", commandName, commandHelp)
+	fmt.Printf("\t"+GREEN_COLOR+"%-20s"+RESET_COLORS+" %s\n", commandName, commandHelp)
 }
 
 func matchCommand(commandName string) *Command {
@@ -85,7 +86,7 @@ func runFindRepoCommand(command *Command, executableName string) {
 	var showFindRepoHelp bool
 	flag.BoolVar(&showFindRepoHelp, "h", false, "Show Help")
 	flag.BoolVar(&showFindRepoHelp, "help", false, "Show Help")
-	
+
 	var alfredOutput bool
 	flag.BoolVar(&alfredOutput, "alfred", false, "Format output for Alfred")
 
@@ -101,7 +102,7 @@ func runFindRepoCommand(command *Command, executableName string) {
 }
 
 func runBuildRepoIndexCommand(command *Command, executableName string) {
-	panic(command.name + " not implemented yet!")
+	buildRepoIndex()
 }
 func runFindProjectCommand(command *Command, executableName string) {
 	panic(command.name + " not implemented yet!")
@@ -115,8 +116,6 @@ func runShellIntegrationCommand(command *Command, executableName string) {
 func runConfigureCommand(command *Command, executableName string) {
 	panic(command.name + " not implemented yet!")
 }
-
-
 
 func printCommandHelp(executableName string, commandName string, hasFilters bool) {
 	filterText := func() string {
