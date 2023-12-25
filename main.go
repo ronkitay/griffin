@@ -16,12 +16,17 @@ type Command struct {
 var COMMANDS = []Command {
 	{"find-repo", "Finds repositories based on given filters", runFindRepoCommand},
 	{"build-repo-index", "Builds the repository index", runBuildRepoIndexCommand},
+	{"find-project", "Finds projects based on given filters", runFindProjectCommand},
+	{"build-project-index", "Builds the projects index", runBuildProjectIndexCommand},
+	{"shell-integration", "Generates Shell Integration commands", runShellIntegrationCommand},
+	{"configure", "Configure the tool", runConfigureCommand},
 }
 const (
 	RESET_COLORS = "\033[0m"
 	BOLD_COLOR = "\033[1m"
 
 	RED_COLOR = "\033[31m"
+	GREEN_COLOR = "\033[32m"
 	WHITE_COLOR = "\033[37m"
 )
 
@@ -64,7 +69,7 @@ func printToolHelp(executableName string) {
 }
 
 func printSingleCommandDescription(commandName, commandHelp string) {
-	fmt.Printf("\t%-18s %s\n", commandName, commandHelp)
+	fmt.Printf("\t" + GREEN_COLOR + "%-20s" + RESET_COLORS + " %s\n", commandName, commandHelp)
 }
 
 func matchCommand(commandName string) *Command {
@@ -96,8 +101,22 @@ func runFindRepoCommand(command *Command, executableName string) {
 }
 
 func runBuildRepoIndexCommand(command *Command, executableName string) {
-	buildRepoIndex()
+	panic(command.name + " not implemented yet!")
 }
+func runFindProjectCommand(command *Command, executableName string) {
+	panic(command.name + " not implemented yet!")
+}
+func runBuildProjectIndexCommand(command *Command, executableName string) {
+	panic(command.name + " not implemented yet!")
+}
+func runShellIntegrationCommand(command *Command, executableName string) {
+	panic(command.name + " not implemented yet!")
+}
+func runConfigureCommand(command *Command, executableName string) {
+	panic(command.name + " not implemented yet!")
+}
+
+
 
 func printCommandHelp(executableName string, commandName string, hasFilters bool) {
 	filterText := func() string {
