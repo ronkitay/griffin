@@ -6,8 +6,26 @@ import (
 	"os"
 )
 
-const COMMAND_FIND_REPO = "find-repo"
-const COMMAND_BUILD_REPO_INDEX = "build-repo-index"
+type CommandHandler func(*Command, string)
+
+type Command struct {
+	name, description string
+	handler CommandHandler
+}
+
+var COMMANDS = []Command {
+	{"find-repo", "Finds repositories based on given filters", runFindRepoCommand},
+	{"build-repo-index", "Builds the repository index", runBuildRepoIndexCommand},
+}
+const (
+	RESET_COLORS = "\033[0m"
+	BOLD_COLOR = "\033[1m"
+
+	RED_COLOR = "\033[31m"
+	WHITE_COLOR = "\033[37m"
+)
+
+const COMMAND_NOT_SUPPORTED_ERROR_MESSAGE = BOLD_COLOR + RED_COLOR + "Command '" + WHITE_COLOR + "%s" + RED_COLOR + "' is not supported!" + RESET_COLORS + "\n"
 
 func main() {
 	executableName := os.Args[0]
@@ -16,38 +34,72 @@ func main() {
 		printToolHelp(executableName)
 	}
 
-	command := os.Args[1]
+	commandName := os.Args[1]
 
-	switch command {
-	case "help":
-		fallthrough
-	case "-h":
-		fallthrough
-	case "--help":
+	if userRequestsHelp(commandName) {
 		printToolHelp(executableName)
-	case COMMAND_FIND_REPO:
-		runFindRepoCommand(executableName)
-	case COMMAND_BUILD_REPO_INDEX:
-		runBuildRepoIndexCommand(executableName)
-	default:
-		printToolHelp(executableName)
+	} else {
+		command := matchCommand(commandName)
+		if command != nil {
+			command.handler(command, executableName)
+		} else {
+			fmt.Fprintf(os.Stderr, COMMAND_NOT_SUPPORTED_ERROR_MESSAGE, commandName)
+			printToolHelp(executableName)
+		}
 	}
+}
+
+func userRequestsHelp(commandName string) bool {
+	return commandName == "-h" || commandName == "--help" || commandName == "help"
 }
 
 func printToolHelp(executableName string) {
 	fmt.Println("Usage:")
-	fmt.Printf("  %s command [options]\n", executableName)
+	fmt.Printf("  %s commandName [options]\n", executableName)
 	fmt.Println("Commands:")
-	printSingleCommandDescription(COMMAND_FIND_REPO, "Finds repositories based on given filters")
-	printSingleCommandDescription(COMMAND_BUILD_REPO_INDEX, "Builds the repository index")
+	for _, commandName := range COMMANDS {
+		printSingleCommandDescription(commandName.name, commandName.description)	
+	}
 	os.Exit(255)
 }
 
-func printSingleCommandDescription(command, commandHelp string) {
-	fmt.Printf("\t%-18s %s\n", command, commandHelp)
+func printSingleCommandDescription(commandName, commandHelp string) {
+	fmt.Printf("\t%-18s %s\n", commandName, commandHelp)
 }
 
-func printCommandHelp(executableName string, command string, hasFilters bool) {
+func matchCommand(commandName string) *Command {
+	for _, potentialMatch := range COMMANDS {
+		if potentialMatch.name == commandName {
+			return &potentialMatch
+		}
+	}
+	return nil
+}
+
+func runFindRepoCommand(command *Command, executableName string) {
+	var showFindRepoHelp bool
+	flag.BoolVar(&showFindRepoHelp, "h", false, "Show Help")
+	flag.BoolVar(&showFindRepoHelp, "help", false, "Show Help")
+	
+	var alfredOutput bool
+	flag.BoolVar(&alfredOutput, "alfred", false, "Format output for Alfred")
+
+	flag.CommandLine.Parse(os.Args[2:])
+
+	if showFindRepoHelp {
+		printCommandHelp(executableName, command.name, true)
+	} else {
+		positionalArgs := flag.Args()
+
+		findRepo(executableName, alfredOutput, positionalArgs)
+	}
+}
+
+func runBuildRepoIndexCommand(command *Command, executableName string) {
+	buildRepoIndex()
+}
+
+func printCommandHelp(executableName string, commandName string, hasFilters bool) {
 	filterText := func() string {
 		if hasFilters {
 			return " [<Filter Values>]"
@@ -56,29 +108,7 @@ func printCommandHelp(executableName string, command string, hasFilters bool) {
 		}
 	}()
 	fmt.Println("Usage:")
-	fmt.Printf("  %s %s [options]%s\n", executableName, command, filterText)
+	fmt.Printf("  %s %s [options]%s\n", executableName, commandName, filterText)
 	fmt.Println("Options:")
 	flag.PrintDefaults()
-}
-
-func runFindRepoCommand(executableName string) {
-	var alfredOutput bool
-	var showFindRepoHelp bool
-	flag.BoolVar(&alfredOutput, "alfred", false, "Format output for Alfred")
-	flag.BoolVar(&showFindRepoHelp, "h", false, "Show Help")
-	flag.BoolVar(&showFindRepoHelp, "help", false, "Show Help")
-
-	flag.CommandLine.Parse(os.Args[2:])
-
-	if showFindRepoHelp {
-		printCommandHelp(executableName, COMMAND_FIND_REPO, true)
-	} else {
-		positionalArgs := flag.Args()
-
-		findRepo(executableName, alfredOutput, positionalArgs)
-	}
-}
-
-func runBuildRepoIndexCommand(executableName string) {
-	buildRepoIndex()
 }
