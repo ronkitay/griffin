@@ -67,9 +67,18 @@ func exists(path string) bool {
 }
 
 func openIDE(ide string, projectDir string) {
-	cmd := exec.Command("open", "-na", ide, "--args", projectDir)
+	var rootDirectory = projectDir
+	if rootDirectory == "." {
+		currentDir, err := os.Getwd()
+		if err != nil {
+			fmt.Println("Cannot resolve working directory:", err)
+			os.Exit(1)
+		}
+		rootDirectory = currentDir
+	}
+	cmd := exec.Command("open", "-na", ide, "--args", rootDirectory)
 	err := cmd.Run()
 	if err != nil {
-		fmt.Println("Error opening IDE:", err)
+		fmt.Println("Error opening IDE (", ide, "):", err)
 	}
 }
