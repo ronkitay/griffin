@@ -8,8 +8,8 @@ import (
 	matcher "ronkitay.com/griffin/pkg/matcher"
 )
 
-func FindRepo(executableName string, alfredOutput bool, args []string) {
-	allRepos := repo.LoadIndex()
+func FindRepo(executableName string, noArchives bool, noDirs bool, alfredOutput bool, args []string) {
+	allRepos := repo.LoadIndex(noArchives, noDirs)
 
 	regexPattern := matcher.BuildPattern(args)
 

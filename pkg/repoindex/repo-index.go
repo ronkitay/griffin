@@ -20,7 +20,7 @@ type RepoData struct {
 	Type string
 }
 
-func LoadIndex() []RepoData {
+func LoadIndex(noArchives bool, noDirs bool) []RepoData {
 	csvData := loadIndexCsv()
 
 	var items []RepoData
@@ -33,9 +33,13 @@ func LoadIndex() []RepoData {
 
 		switch locationType {
 		case "dir":
-			items = append(items, RepoData{BaseDir: parentDir, FullName: repoName, Type: "dir"})
+			if !noDirs {
+				items = append(items, RepoData{BaseDir: parentDir, FullName: repoName, Type: "dir"})
+			}
 		case "archive":
-			fallthrough
+			if !noArchives {
+				items = append(items, RepoData{BaseDir: parentDir, FullName: repoName, Url: url, Type: locationType})
+			}
 		case "gitlab":
 			fallthrough
 		case "github":

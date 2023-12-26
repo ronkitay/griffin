@@ -5,8 +5,17 @@ import (
 	"os"
 )
 
+type IdeConfiguration struct {
+	DefaultIDE string `json:"default"`
+	GoLang string `json:"go"`
+	Java string `json:"java"`
+	Python string `json:"python"`
+	NodeJS string `json:"node"`
+}
+
 type UserConfiguration struct {
 	RepoRoots []string `json:"repoRoots"`
+	IdeConfiguration IdeConfiguration `json:"ideConfiguration"`
 }
 
 type Configuration struct {
