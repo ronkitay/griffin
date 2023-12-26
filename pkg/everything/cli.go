@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"ronkitay.com/griffin/pkg/repoindex"
 )
 
 type CommandHandler func(*Command, string)
@@ -102,7 +104,7 @@ func runFindRepoCommand(command *Command, executableName string) {
 }
 
 func runBuildRepoIndexCommand(command *Command, executableName string) {
-	buildRepoIndex()
+	repoindex.BuildRepoIndex()
 }
 func runFindProjectCommand(command *Command, executableName string) {
 	panic(command.name + " not implemented yet!")

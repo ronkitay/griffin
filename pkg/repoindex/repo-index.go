@@ -1,4 +1,4 @@
-package everything
+package repoindex
 
 import (
 	"bufio"
@@ -14,13 +14,13 @@ import (
 )
 
 type RepoData struct {
-	repoDir      string
-	repoName     string
-	url          string
-	locationType string
+	BaseDir      string
+	FullName     string
+	Url          string
+	Type string
 }
 
-func loadIndex() []RepoData {
+func LoadIndex() []RepoData {
 	csvData := loadIndexCsv()
 
 	var items []RepoData
@@ -33,13 +33,13 @@ func loadIndex() []RepoData {
 
 		switch locationType {
 		case "dir":
-			items = append(items, RepoData{repoDir: parentDir, repoName: repoName, locationType: "dir"})
+			items = append(items, RepoData{BaseDir: parentDir, FullName: repoName, Type: "dir"})
 		case "archive":
 			fallthrough
 		case "gitlab":
 			fallthrough
 		case "github":
-			items = append(items, RepoData{repoDir: parentDir, repoName: repoName, url: url, locationType: locationType})
+			items = append(items, RepoData{BaseDir: parentDir, FullName: repoName, Url: url, Type: locationType})
 		}
 	}
 	return items
@@ -64,7 +64,7 @@ func loadIndexCsv() [][]string {
 	return data
 }
 
-func buildRepoIndex() {
+func BuildRepoIndex() {
 	userHomeDir, _ := os.UserHomeDir()
 	configuration := config.LoadConfiguration()
 	// fmt.Println(configuration)
@@ -88,7 +88,7 @@ func buildRepoIndex() {
 
 	// Write data
 	for _, repo := range repos {
-		row := []string{repo.repoDir, repo.repoName, repo.url, repo.locationType}
+		row := []string{repo.BaseDir, repo.FullName, repo.Url, repo.Type}
 		err := writer.Write(row)
 		if err != nil {
 			fmt.Println("Error writing CSV row:", err)
@@ -157,7 +157,7 @@ func visit(rootLocation string, paths *[]RepoData) filepath.WalkFunc {
 				} else {
 					gitHttpUrl := gitURLToHTTP(remoteURL)
 					repoType := repoType(gitHttpUrl)
-					repoData := RepoData{repoDir: repoDir, repoName: repoName, url: gitHttpUrl, locationType: repoType}
+					repoData := RepoData{BaseDir: repoDir, FullName: repoName, Url: gitHttpUrl, Type: repoType}
 					*paths = append(*paths, repoData)
 
 					*paths = addParents(*paths, rootLocation, path)
@@ -179,7 +179,7 @@ func visit(rootLocation string, paths *[]RepoData) filepath.WalkFunc {
 						archiveData := strings.Split(cleanedLine, ";")
 						gitHttpUrl := gitURLToHTTP(archiveData[1])
 						archiveDir, archiveName := dirAndName(rootLocation, path)
-						repoData := RepoData{repoDir: archiveDir, repoName: archiveName, url: gitHttpUrl, locationType: "archive"}
+						repoData := RepoData{BaseDir: archiveDir, FullName: archiveName, Url: gitHttpUrl, Type: "archive"}
 						*paths = append(*paths, repoData)
 					}
 				}
@@ -196,7 +196,7 @@ func addParents(repos []RepoData, rootLocation, path string) []RepoData {
 	} else {
 		parentDir := filepath.Dir(path)
 		dir, name := dirAndName(rootLocation, parentDir)
-		repoData := RepoData{repoDir: dir, repoName: name, url: "-", locationType: "dir"}
+		repoData := RepoData{BaseDir: dir, FullName: name, Url: "-", Type: "dir"}
 		repos = append(repos, repoData)
 		return addParents(repos, rootLocation, parentDir)
 	}

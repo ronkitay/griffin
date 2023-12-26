@@ -4,6 +4,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	repo "ronkitay.com/griffin/pkg/repoindex"
 )
 
 func buildPattern(args []string) *regexp.Regexp {
@@ -23,11 +25,11 @@ func buildPattern(args []string) *regexp.Regexp {
 	return regexPattern
 }
 
-func matchRepos(repoList []RepoData, regexPattern *regexp.Regexp) []RepoData {
-	var result []RepoData
+func matchRepos(repoList []repo.RepoData, regexPattern *regexp.Regexp) []repo.RepoData {
+	var result []repo.RepoData
 
 	for _, element := range repoList {
-		if regexPattern.MatchString(element.repoName) {
+		if regexPattern.MatchString(element.FullName) {
 			result = append(result, element)
 		}
 	}

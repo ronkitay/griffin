@@ -1,13 +1,15 @@
-package everything
+package alfred
 
 import (
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	repo "ronkitay.com/griffin/pkg/repoindex"
 )
 
-func asAlfred(matchingRepos []RepoData) string {
+func AsAlfred(matchingRepos []repo.RepoData) string {
 	var items []Item
 
 	for _, repo := range matchingRepos {
@@ -27,19 +29,19 @@ func asAlfred(matchingRepos []RepoData) string {
 	return string(jsonData)
 }
 
-func buildAlfredItem(repo RepoData) Item {
-	repoFullPath := filepath.Join(repo.repoDir, repo.repoName)
-	switch repo.locationType {
+func buildAlfredItem(repo repo.RepoData) Item {
+	repoFullPath := filepath.Join(repo.BaseDir, repo.FullName)
+	switch repo.Type {
 	case "dir":
-		return buildDirectoryLocation(repoFullPath, repo.repoName)
+		return buildDirectoryLocation(repoFullPath, repo.FullName)
 	case "archive":
-		return buildArchiveLocation(repoFullPath, repo.repoName, repo.url)
+		return buildArchiveLocation(repoFullPath, repo.FullName, repo.Url)
 	case "gitlab":
 		fallthrough
 	case "github":
-		return buildGitRepoLocation(repoFullPath, repo.repoName, repo.url, repo.locationType)
+		return buildGitRepoLocation(repoFullPath, repo.FullName, repo.Url, repo.Type)
 	default:
-		panic("Unsupported locationType: " + repo.locationType)
+		panic("Unsupported locationType: " + repo.Type)
 	}
 }
 
