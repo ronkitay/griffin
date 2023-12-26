@@ -1,4 +1,4 @@
-package main
+package everything
 
 import (
 	"flag"
@@ -33,7 +33,7 @@ const (
 
 const COMMAND_NOT_SUPPORTED_ERROR_MESSAGE = BOLD_COLOR + RED_COLOR + "Command '" + WHITE_COLOR + "%s" + RED_COLOR + "' is not supported!" + RESET_COLORS + "\n"
 
-func main() {
+func Run() {
 	executableName := os.Args[0]
 
 	if len(os.Args) == 1 {
