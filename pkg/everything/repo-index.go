@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	config "ronkitay.com/griffin/pkg/configuration"
 )
 
 type RepoData struct {
@@ -44,9 +46,9 @@ func loadIndex() []RepoData {
 }
 
 func loadIndexCsv() [][]string {
-	configuration := loadConfiguration()
+	configuration := config.LoadConfiguration()
 
-	file, fileOpenError := os.Open(configuration.repoListLocation)
+	file, fileOpenError := os.Open(configuration.RepoListLocation)
 	if fileOpenError != nil {
 		os.Exit(1)
 	}
@@ -64,17 +66,17 @@ func loadIndexCsv() [][]string {
 
 func buildRepoIndex() {
 	userHomeDir, _ := os.UserHomeDir()
-	configuration := loadConfiguration()
+	configuration := config.LoadConfiguration()
 	// fmt.Println(configuration)
 
 	var repos []RepoData
-	for _, rootLocation := range configuration.userConfiguration.RepoRoots {
+	for _, rootLocation := range configuration.UserConfiguration.RepoRoots {
 		interpolatedRootLocation := strings.Replace(rootLocation, "${HOME}", userHomeDir, -1)
 		reposFromRoot := locateRepos(interpolatedRootLocation)
 		repos = append(repos, reposFromRoot...)
 	}
 
-	file, err := os.Create(configuration.repoListLocation + ".new")
+	file, err := os.Create(configuration.RepoListLocation + ".new")
 	if err != nil {
 		fmt.Println("Error creating CSV file:", err)
 		return
@@ -102,7 +104,7 @@ func buildRepoIndex() {
 		return
 	}
 
-	os.Rename(configuration.repoListLocation+".new", configuration.repoListLocation)
+	os.Rename(configuration.RepoListLocation+".new", configuration.RepoListLocation)
 }
 
 func locateRepos(rootLocation string) []RepoData {

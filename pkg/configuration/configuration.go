@@ -1,4 +1,4 @@
-package everything
+package configuration
 
 import (
 	"encoding/json"
@@ -10,8 +10,8 @@ type UserConfiguration struct {
 }
 
 type Configuration struct {
-	repoListLocation  string
-	userConfiguration UserConfiguration
+	RepoListLocation  string
+	UserConfiguration UserConfiguration
 }
 
 func fileExists(filename string) (bool, error) {
@@ -28,7 +28,7 @@ func fileExists(filename string) (bool, error) {
 	return true, nil
 }
 
-func loadConfiguration() Configuration {
+func LoadConfiguration() Configuration {
 	configurationDirectory := os.Getenv("HOME") + "/.config/griffin"
 	repoListLocation := configurationDirectory + "/repo.list"
 
@@ -48,5 +48,5 @@ func loadConfiguration() Configuration {
 		userConfiguration = UserConfiguration{}
 	}
 
-	return Configuration{repoListLocation: repoListLocation, userConfiguration: userConfiguration}
+	return Configuration{RepoListLocation: repoListLocation, UserConfiguration: userConfiguration}
 }
