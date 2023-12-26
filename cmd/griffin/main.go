@@ -1,11 +1,11 @@
 package main
 
 import (
-	"ronkitay.com/griffin/pkg/everything"
+	"ronkitay.com/griffin/pkg/cli"
 )
 
 
 func main() {
-	everything.Run()
+	cli.Run()
 }
 

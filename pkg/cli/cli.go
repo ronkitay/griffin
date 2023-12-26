@@ -1,4 +1,4 @@
-package everything
+package cli
 
 import (
 	"flag"
@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"ronkitay.com/griffin/pkg/repoindex"
+	"ronkitay.com/griffin/pkg/finder"
 )
 
 type CommandHandler func(*Command, string)
@@ -99,7 +100,7 @@ func runFindRepoCommand(command *Command, executableName string) {
 	} else {
 		positionalArgs := flag.Args()
 
-		findRepo(executableName, alfredOutput, positionalArgs)
+		finder.FindRepo(executableName, alfredOutput, positionalArgs)
 	}
 }
 

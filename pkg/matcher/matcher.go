@@ -1,4 +1,4 @@
-package everything
+package matcher
 
 import (
 	"os"
@@ -8,7 +8,7 @@ import (
 	repo "ronkitay.com/griffin/pkg/repoindex"
 )
 
-func buildPattern(args []string) *regexp.Regexp {
+func BuildPattern(args []string) *regexp.Regexp {
 	var searchPattern string
 
 	if len(args) == 0 {
@@ -25,7 +25,7 @@ func buildPattern(args []string) *regexp.Regexp {
 	return regexPattern
 }
 
-func matchRepos(repoList []repo.RepoData, regexPattern *regexp.Regexp) []repo.RepoData {
+func MatchRepos(repoList []repo.RepoData, regexPattern *regexp.Regexp) []repo.RepoData {
 	var result []repo.RepoData
 
 	for _, element := range repoList {

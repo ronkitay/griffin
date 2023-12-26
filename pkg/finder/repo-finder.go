@@ -1,18 +1,19 @@
-package everything
+package finder
 
 import (
 	"fmt"
 	"path/filepath"
 	alfred "ronkitay.com/griffin/pkg/alfred"
 	repo "ronkitay.com/griffin/pkg/repoindex"
+	matcher "ronkitay.com/griffin/pkg/matcher"
 )
 
-func findRepo(executableName string, alfredOutput bool, args []string) {
+func FindRepo(executableName string, alfredOutput bool, args []string) {
 	allRepos := repo.LoadIndex()
 
-	regexPattern := buildPattern(args)
+	regexPattern := matcher.BuildPattern(args)
 
-	matchingRepos := matchRepos(allRepos, regexPattern)
+	matchingRepos := matcher.MatchRepos(allRepos, regexPattern)
 
 	if alfredOutput {
 		result := alfred.AsAlfred(matchingRepos)
