@@ -8,6 +8,8 @@ import (
 	"ronkitay.com/griffin/pkg/repoindex"
 	"ronkitay.com/griffin/pkg/finder"
 	"ronkitay.com/griffin/pkg/idelauncher"
+	"ronkitay.com/griffin/pkg/shell"
+	"ronkitay.com/griffin/pkg/terminal"
 )
 
 type CommandHandler func(*Command, string)
@@ -27,16 +29,9 @@ var COMMANDS = []Command{
 	{"open-in-ide", "Opens a given path in the appropriate IDE", runInIDECommand},
 }
 
-const (
-	RESET_COLORS = "\033[0m"
-	BOLD_COLOR   = "\033[1m"
 
-	RED_COLOR   = "\033[31m"
-	GREEN_COLOR = "\033[32m"
-	WHITE_COLOR = "\033[37m"
-)
 
-const COMMAND_NOT_SUPPORTED_ERROR_MESSAGE = BOLD_COLOR + RED_COLOR + "Command '" + WHITE_COLOR + "%s" + RED_COLOR + "' is not supported!" + RESET_COLORS + "\n"
+const COMMAND_NOT_SUPPORTED_ERROR_MESSAGE = terminal.BOLD_COLOR + terminal.RED_COLOR + "Command '" + terminal.WHITE_COLOR + "%s" + terminal.RED_COLOR + "' is not supported!" + terminal.RESET_COLORS + "\n"
 
 func Run() {
 	executableName := os.Args[0]
@@ -75,7 +70,7 @@ func printToolHelp(executableName string) {
 }
 
 func printSingleCommandDescription(commandName, commandHelp string) {
-	fmt.Printf("\t"+GREEN_COLOR+"%-20s"+RESET_COLORS+" %s\n", commandName, commandHelp)
+	fmt.Printf("\t"+terminal.GREEN_COLOR+"%-20s"+terminal.RESET_COLORS+" %s\n", commandName, commandHelp)
 }
 
 func matchCommand(commandName string) *Command {
@@ -122,45 +117,7 @@ func runBuildProjectIndexCommand(command *Command, executableName string) {
 	panic(command.name + " not implemented yet!")
 }
 func runShellIntegrationCommand(command *Command, executableName string) {
-	script := `
-	function r() {
-		TEMP_LIST_FILE=$(mktemp)
-	
-		${HOME}/tools/griffin find-repo $* > ${TEMP_LIST_FILE}
-	
-		if [[ "$(cat ${TEMP_LIST_FILE} | wc -l)" -eq "1" ]]; 
-		then 
-			DIR_TO_SWITCH_TO=$(cat ${TEMP_LIST_FILE})
-		else
-			DIR_TO_SWITCH_TO=$(cat ${TEMP_LIST_FILE} | fzf --preview 'tree -L 2 -C {}')
-		fi
-		rm ${TEMP_LIST_FILE}
-	
-		if [[ "${DIR_TO_SWITCH_TO}" = *.git ]]; 
-		then
-			cd $(dirname ${DIR_TO_SWITCH_TO});
-			echo "${BRIGHT}${GREEN}To access the repo, run the following command:${NORMAL}"
-			echo ""
-			echo "unarchive $(basename ${DIR_TO_SWITCH_TO})"
-			echo ""
-		else
-			cd $DIR_TO_SWITCH_TO
-		fi
-	}
-	
-	function o() {
-		TEMP_LIST_FILE=$(mktemp)
-		${HOME}/tools/griffin find-repo --noarchive --nodir $* > ${TEMP_LIST_FILE}
-		PROJECT_DIR=$(cat ${TEMP_LIST_FILE} | fzf --preview 'tree -L 2 -C {}')
-		rm ${TEMP_LIST_FILE}
-		if [[ -n "${PROJECT_DIR}" ]]; then
-			griffin open-in-ide $PROJECT_DIR
-		fi
-	}
-	`
-
-	fmt.Println(script)
-
+	shell.GenerateIntegration()
 }
 func runConfigureCommand(command *Command, executableName string) {
 	panic(command.name + " not implemented yet!")
