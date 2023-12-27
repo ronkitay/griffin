@@ -61,7 +61,7 @@ func userRequestsHelp(commandName string) bool {
 
 func printToolHelp(executableName string) {
 	fmt.Println("Usage:")
-	fmt.Printf("  %s commandName [options]\n", executableName)
+	fmt.Printf("  %s command [options]\n", executableName)
 	fmt.Println("Commands:")
 	for _, commandName := range COMMANDS {
 		printSingleCommandDescription(commandName.name, commandName.description)
