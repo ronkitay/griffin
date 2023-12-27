@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"ronkitay.com/griffin/pkg/repoindex"
 	"ronkitay.com/griffin/pkg/finder"
 	"ronkitay.com/griffin/pkg/idelauncher"
+	"ronkitay.com/griffin/pkg/repoindex"
 	"ronkitay.com/griffin/pkg/shell"
 	"ronkitay.com/griffin/pkg/terminal"
 )
@@ -28,8 +28,6 @@ var COMMANDS = []Command{
 	{"configure", "Configure the tool", runConfigureCommand},
 	{"open-in-ide", "Opens a given path in the appropriate IDE", runInIDECommand},
 }
-
-
 
 const COMMAND_NOT_SUPPORTED_ERROR_MESSAGE = terminal.BOLD_COLOR + terminal.RED_COLOR + "Command '" + terminal.WHITE_COLOR + "%s" + terminal.RED_COLOR + "' is not supported!" + terminal.RESET_COLORS + "\n"
 
