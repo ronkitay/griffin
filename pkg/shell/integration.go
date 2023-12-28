@@ -30,7 +30,7 @@ func GenerateIntegration() {
 		then 
 			DIR_TO_SWITCH_TO=$(cat "${TEMP_LIST_FILE}")
 		else
-			DIR_TO_SWITCH_TO=$(cat "${TEMP_LIST_FILE}" | fzf --preview 'tree -L 2 -C {}')
+			DIR_TO_SWITCH_TO=$(cat "${TEMP_LIST_FILE}" | fzf +m --preview 'tree -L 2 -C {}')
 		fi
 		rm "${TEMP_LIST_FILE}"
 	
@@ -51,7 +51,7 @@ func GenerateIntegration() {
 		
 		griffin find-repo --noarchive --nodir $* > "${TEMP_LIST_FILE}"
 		
-		PROJECT_DIR=$(cat "${TEMP_LIST_FILE}" | fzf --preview 'tree -L 2 -C {}')
+		PROJECT_DIR=$(cat "${TEMP_LIST_FILE}" | fzf +m --preview 'tree -L 2 -C {}')
 		
 		rm "${TEMP_LIST_FILE}"
 		
