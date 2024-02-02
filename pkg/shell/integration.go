@@ -19,7 +19,7 @@ func GenerateIntegration() {
 			os.Exit(1)
 		}
 	}
-	
+
 	scriptTemplate := `
 	function r() {
 		TEMP_LIST_FILE=$(mktemp)
@@ -46,7 +46,7 @@ func GenerateIntegration() {
 		fi
 	}
 	
-	function o() {
+	function or() {
 		TEMP_LIST_FILE=$(mktemp)
 		
 		griffin find-repo --noarchive --nodir $* > "${TEMP_LIST_FILE}"
@@ -58,6 +58,26 @@ func GenerateIntegration() {
 		if [[ -n "${PROJECT_DIR}" ]]; then
 			griffin open-in-ide "${PROJECT_DIR}"
 		fi
+	}
+
+	function p() {
+		TEMP_PP_LIST_FILE=$(mktemp)
+	
+		PP_CONFIG_DIR=${HOME}/.config/griffin
+		PP_CONFIG_FILE=${PP_CONFIG_DIR}/project.list 
+		PATTERN=$(echo $* | sed 's/ /\.\*/g')
+	
+		cat ${PP_CONFIG_FILE} | cut -d';' -f1-2 | egrep -i ".*${PATTERN}.*" | tr ';' '/' > ${TEMP_PP_LIST_FILE}
+	
+		if [[ "$(cat ${TEMP_PP_LIST_FILE} | wc -l)" -eq "1" ]]; 
+		then 
+			DIR_TO_SWITCH_TO=$(cat ${TEMP_PP_LIST_FILE})
+		else
+			DIR_TO_SWITCH_TO=$(cat ${TEMP_PP_LIST_FILE} | fzf --preview 'tree -L 2 -C {}')
+		fi
+		rm ${TEMP_PP_LIST_FILE}
+	
+		cd $DIR_TO_SWITCH_TO
 	}
 	`
 

@@ -7,6 +7,7 @@ import (
 
 	"ronkitay.com/griffin/pkg/finder"
 	"ronkitay.com/griffin/pkg/idelauncher"
+	"ronkitay.com/griffin/pkg/projectindex"
 	"ronkitay.com/griffin/pkg/repoindex"
 	"ronkitay.com/griffin/pkg/shell"
 	"ronkitay.com/griffin/pkg/terminal"
@@ -112,7 +113,7 @@ func runFindProjectCommand(command *Command, executableName string) {
 	panic(command.name + " not implemented yet!")
 }
 func runBuildProjectIndexCommand(command *Command, executableName string) {
-	panic(command.name + " not implemented yet!")
+	projectindex.BuildProjectIndex()
 }
 func runShellIntegrationCommand(command *Command, executableName string) {
 	shell.GenerateIntegration()

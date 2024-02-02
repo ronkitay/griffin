@@ -7,20 +7,21 @@ import (
 
 type IdeConfiguration struct {
 	DefaultIDE string `json:"default"`
-	GoLang string `json:"go"`
-	Java string `json:"java"`
-	Python string `json:"python"`
-	NodeJS string `json:"node"`
+	GoLang     string `json:"go"`
+	Java       string `json:"java"`
+	Python     string `json:"python"`
+	NodeJS     string `json:"node"`
 }
 
 type UserConfiguration struct {
-	RepoRoots []string `json:"repoRoots"`
+	RepoRoots        []string         `json:"repoRoots"`
 	IdeConfiguration IdeConfiguration `json:"ideConfiguration"`
 }
 
 type Configuration struct {
-	RepoListLocation  string
-	UserConfiguration UserConfiguration
+	RepoListLocation    string
+	ProjectListLocation string
+	UserConfiguration   UserConfiguration
 }
 
 func fileExists(filename string) (bool, error) {
@@ -40,6 +41,7 @@ func fileExists(filename string) (bool, error) {
 func LoadConfiguration() Configuration {
 	configurationDirectory := os.Getenv("HOME") + "/.config/griffin"
 	repoListLocation := configurationDirectory + "/repo.list"
+	projectListLocation := configurationDirectory + "/project.list"
 
 	var userConfiguration UserConfiguration
 
@@ -57,5 +59,5 @@ func LoadConfiguration() Configuration {
 		userConfiguration = UserConfiguration{}
 	}
 
-	return Configuration{RepoListLocation: repoListLocation, UserConfiguration: userConfiguration}
+	return Configuration{RepoListLocation: repoListLocation, ProjectListLocation: projectListLocation, UserConfiguration: userConfiguration}
 }

@@ -14,10 +14,10 @@ import (
 )
 
 type RepoData struct {
-	BaseDir      string
-	FullName     string
-	Url          string
-	Type string
+	BaseDir  string
+	FullName string
+	Url      string
+	Type     string
 }
 
 func LoadIndex(noArchives bool, noDirs bool) []RepoData {
@@ -71,7 +71,6 @@ func loadIndexCsv() [][]string {
 func BuildRepoIndex() {
 	userHomeDir, _ := os.UserHomeDir()
 	configuration := config.LoadConfiguration()
-	// fmt.Println(configuration)
 
 	var repos []RepoData
 	for _, rootLocation := range configuration.UserConfiguration.RepoRoots {
