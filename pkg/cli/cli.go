@@ -110,7 +110,19 @@ func runBuildRepoIndexCommand(command *Command, executableName string) {
 	repoindex.BuildRepoIndex()
 }
 func runFindProjectCommand(command *Command, executableName string) {
-	panic(command.name + " not implemented yet!")
+	var showFindRepoHelp bool
+	flag.BoolVar(&showFindRepoHelp, "h", false, "Show Help")
+	flag.BoolVar(&showFindRepoHelp, "help", false, "Show Help")
+
+	flag.CommandLine.Parse(os.Args[2:])
+
+	if showFindRepoHelp {
+		printCommandHelp(executableName, command.name, true)
+	} else {
+		positionalArgs := flag.Args()
+
+		finder.FindProjects(executableName, false, positionalArgs)
+	}
 }
 func runBuildProjectIndexCommand(command *Command, executableName string) {
 	projectindex.BuildProjectIndex()

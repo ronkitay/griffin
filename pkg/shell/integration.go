@@ -61,23 +61,17 @@ func GenerateIntegration() {
 	}
 
 	function p() {
-		TEMP_PP_LIST_FILE=$(mktemp)
+		griffin find-project $* > "${TEMP_LIST_FILE}"
 	
-		PP_CONFIG_DIR=${HOME}/.config/griffin
-		PP_CONFIG_FILE=${PP_CONFIG_DIR}/project.list 
-		PATTERN=$(echo $* | sed 's/ /\.\*/g')
-	
-		cat ${PP_CONFIG_FILE} | cut -d';' -f1-2 | egrep -i ".*${PATTERN}.*" | tr ';' '/' > ${TEMP_PP_LIST_FILE}
-	
-		if [[ "$(cat ${TEMP_PP_LIST_FILE} | wc -l)" -eq "1" ]]; 
+		if [[ "$(cat "${TEMP_LIST_FILE}" | wc -l)" -eq "1" ]]; 
 		then 
-			DIR_TO_SWITCH_TO=$(cat ${TEMP_PP_LIST_FILE})
+			DIR_TO_SWITCH_TO=$(cat "${TEMP_LIST_FILE}")
 		else
-			DIR_TO_SWITCH_TO=$(cat ${TEMP_PP_LIST_FILE} | fzf --preview 'tree -L 2 -C {}')
+			DIR_TO_SWITCH_TO=$(cat "${TEMP_LIST_FILE}" | fzf +m --preview 'tree -L 2 -C {}')
 		fi
-		rm ${TEMP_PP_LIST_FILE}
+		rm "${TEMP_LIST_FILE}"
 	
-		cd $DIR_TO_SWITCH_TO
+		cd "${DIR_TO_SWITCH_TO}"
 	}
 	`
 

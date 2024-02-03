@@ -2,7 +2,7 @@ package repoindex
 
 import (
 	"bufio"
-	"encoding/csv"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	config "ronkitay.com/griffin/pkg/configuration"
+	csvHelper "ronkitay.com/griffin/pkg/csv"
 )
 
 type RepoData struct {
@@ -20,52 +21,39 @@ type RepoData struct {
 	Type     string
 }
 
-func LoadIndex(noArchives bool, noDirs bool) []RepoData {
-	csvData := loadIndexCsv()
+func (datum RepoData) AsCsvRecord() []string {
+	return []string{datum.BaseDir, datum.FullName, datum.Url, datum.Type}
+}
 
-	var items []RepoData
-
-	for _, line := range csvData {
-		repoName := line[1]
-		locationType := line[3]
-		url := line[2]
-		parentDir := line[0]
+func converter(noArchives bool, noDirs bool) func(csvData []string) (RepoData, error) {
+	return func(csvData []string) (RepoData, error) {
+		repoName := csvData[1]
+		locationType := csvData[3]
+		url := csvData[2]
+		parentDir := csvData[0]
 
 		switch locationType {
 		case "dir":
 			if !noDirs {
-				items = append(items, RepoData{BaseDir: parentDir, FullName: repoName, Type: "dir"})
+				return RepoData{BaseDir: parentDir, FullName: repoName, Type: "dir"}, nil
 			}
 		case "archive":
 			if !noArchives {
-				items = append(items, RepoData{BaseDir: parentDir, FullName: repoName, Url: url, Type: locationType})
+				return RepoData{BaseDir: parentDir, FullName: repoName, Url: url, Type: locationType}, nil
 			}
 		case "gitlab":
 			fallthrough
 		case "github":
-			items = append(items, RepoData{BaseDir: parentDir, FullName: repoName, Url: url, Type: locationType})
+			return RepoData{BaseDir: parentDir, FullName: repoName, Url: url, Type: locationType}, nil
 		}
+
+		return RepoData{}, errors.New("Path skipped or not supported")
 	}
-	return items
+
 }
 
-func loadIndexCsv() [][]string {
-	configuration := config.LoadConfiguration()
-
-	file, fileOpenError := os.Open(configuration.RepoListLocation)
-	if fileOpenError != nil {
-		os.Exit(1)
-	}
-
-	defer file.Close()
-
-	csvReader := csv.NewReader(file)
-	csvReader.Comma = ';'
-	data, csvReadError := csvReader.ReadAll()
-	if csvReadError != nil {
-		os.Exit(2)
-	}
-	return data
+func LoadIndex(noArchives bool, noDirs bool) []RepoData {
+	return csvHelper.LoadIndex[RepoData](config.LoadConfiguration().RepoListLocation, converter(noArchives, noDirs))
 }
 
 func BuildRepoIndex() {
@@ -79,35 +67,7 @@ func BuildRepoIndex() {
 		repos = append(repos, reposFromRoot...)
 	}
 
-	file, err := os.Create(configuration.RepoListLocation + ".new")
-	if err != nil {
-		fmt.Println("Error creating CSV file:", err)
-		return
-	}
-	defer file.Close()
-
-	writer := csv.NewWriter(file)
-	writer.Comma = ';'
-
-	// Write data
-	for _, repo := range repos {
-		row := []string{repo.BaseDir, repo.FullName, repo.Url, repo.Type}
-		err := writer.Write(row)
-		if err != nil {
-			fmt.Println("Error writing CSV row:", err)
-			return
-		}
-	}
-
-	writer.Flush()
-
-	// Check for errors during Flush
-	if err := writer.Error(); err != nil {
-		fmt.Println("Error flushing CSV writer:", err)
-		return
-	}
-
-	os.Rename(configuration.RepoListLocation+".new", configuration.RepoListLocation)
+	csvHelper.SaveIndex(configuration.RepoListLocation, repos)
 }
 
 func locateRepos(rootLocation string) []RepoData {
@@ -119,26 +79,8 @@ func locateRepos(rootLocation string) []RepoData {
 	}
 
 	repos = deDuplicate(repos)
-	// fmt.Println("List of paths:")
-	// for _, repo := range repos {
-	// 	fmt.Println(repo)
-	// }
 
 	return repos
-}
-
-func deDuplicate(input []RepoData) []RepoData {
-	encountered := map[RepoData]bool{}
-	result := []RepoData{}
-
-	for _, v := range input {
-		if !encountered[v] {
-			encountered[v] = true
-			result = append(result, v)
-		}
-	}
-
-	return result
 }
 
 func visit(rootLocation string, paths *[]RepoData) filepath.WalkFunc {
@@ -191,6 +133,20 @@ func visit(rootLocation string, paths *[]RepoData) filepath.WalkFunc {
 
 		return nil
 	}
+}
+
+func deDuplicate(input []RepoData) []RepoData {
+	encountered := map[RepoData]bool{}
+	result := []RepoData{}
+
+	for _, v := range input {
+		if !encountered[v] {
+			encountered[v] = true
+			result = append(result, v)
+		}
+	}
+
+	return result
 }
 
 func addParents(repos []RepoData, rootLocation, path string) []RepoData {

@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	projectIndex "ronkitay.com/griffin/pkg/projectindex"
 	repo "ronkitay.com/griffin/pkg/repoindex"
 )
 
@@ -30,6 +31,18 @@ func MatchRepos(repoList []repo.RepoData, regexPattern *regexp.Regexp) []repo.Re
 
 	for _, element := range repoList {
 		if regexPattern.MatchString(element.FullName) {
+			result = append(result, element)
+		}
+	}
+
+	return result
+}
+
+func MatchProjects(projectList []projectIndex.ProjectData, regexPattern *regexp.Regexp) []projectIndex.ProjectData {
+	var result []projectIndex.ProjectData
+
+	for _, element := range projectList {
+		if regexPattern.MatchString(element.BaseDir + "/" + element.FullName) {
 			result = append(result, element)
 		}
 	}

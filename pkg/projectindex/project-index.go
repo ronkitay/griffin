@@ -1,7 +1,6 @@
 package projectindex
 
 import (
-	"encoding/csv"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -10,6 +9,7 @@ import (
 	"strings"
 
 	config "ronkitay.com/griffin/pkg/configuration"
+	csvHelper "ronkitay.com/griffin/pkg/csv"
 	repoIndex "ronkitay.com/griffin/pkg/repoindex"
 )
 
@@ -17,6 +17,22 @@ type ProjectData struct {
 	BaseDir  string
 	FullName string
 	Type     string
+}
+
+func (datum ProjectData) AsCsvRecord() []string {
+	return []string{datum.BaseDir, datum.FullName, datum.Type}
+}
+
+func FromCsvRecord(data []string) (ProjectData, error) {
+	return ProjectData{
+		BaseDir:  data[0],
+		FullName: data[1],
+		Type:     data[2],
+	}, nil
+}
+
+func LoadIndex() []ProjectData {
+	return csvHelper.LoadIndex[ProjectData](config.LoadConfiguration().ProjectListLocation, FromCsvRecord)
 }
 
 func BuildProjectIndex() {
@@ -31,7 +47,7 @@ func BuildProjectIndex() {
 		scanRepoForProjects(repoRoot, &projects)
 	}
 
-	saveProjectIndex(projects)
+	csvHelper.SaveIndex(config.LoadConfiguration().ProjectListLocation, projects)
 }
 
 func scanRepoForProjects(rootLocation string, projects *[]ProjectData) {
@@ -112,38 +128,4 @@ func dirAndName(rootLocation string, path string) (string, string) {
 	} else {
 		return rootLocation, strings.Replace(path, rootLocation+"/", "", -1)
 	}
-}
-
-func saveProjectIndex(projects []ProjectData) {
-	configuration := config.LoadConfiguration()
-
-	file, err := os.Create(configuration.ProjectListLocation + ".new")
-	if err != nil {
-		fmt.Println("Error creating CSV file:", err)
-		return
-	}
-	defer file.Close()
-
-	writer := csv.NewWriter(file)
-	writer.Comma = ';'
-
-	// Write data
-	for _, project := range projects {
-		row := []string{project.BaseDir, project.FullName, project.Type}
-		err := writer.Write(row)
-		if err != nil {
-			fmt.Println("Error writing CSV row:", err)
-			return
-		}
-	}
-
-	writer.Flush()
-
-	// Check for errors during Flush
-	if err := writer.Error(); err != nil {
-		fmt.Println("Error flushing CSV writer:", err)
-		return
-	}
-
-	os.Rename(configuration.ProjectListLocation+".new", configuration.ProjectListLocation)
 }
