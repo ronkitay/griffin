@@ -4,9 +4,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-
-	projectIndex "ronkitay.com/griffin/pkg/projectindex"
-	repo "ronkitay.com/griffin/pkg/repoindex"
 )
 
 func BuildPattern(args []string) *regexp.Regexp {
@@ -26,23 +23,15 @@ func BuildPattern(args []string) *regexp.Regexp {
 	return regexPattern
 }
 
-func MatchRepos(repoList []repo.RepoData, regexPattern *regexp.Regexp) []repo.RepoData {
-	var result []repo.RepoData
-
-	for _, element := range repoList {
-		if regexPattern.MatchString(element.FullName) {
-			result = append(result, element)
-		}
-	}
-
-	return result
+type Matchable interface {
+	Matchable() string
 }
 
-func MatchProjects(projectList []projectIndex.ProjectData, regexPattern *regexp.Regexp) []projectIndex.ProjectData {
-	var result []projectIndex.ProjectData
+func MatchItems[T Matchable](elements []T, regexPattern *regexp.Regexp) []T {
+	var result []T
 
-	for _, element := range projectList {
-		if regexPattern.MatchString(element.BaseDir + "/" + element.FullName) {
+	for _, element := range elements {
+		if regexPattern.MatchString(element.Matchable()) {
 			result = append(result, element)
 		}
 	}

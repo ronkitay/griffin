@@ -23,6 +23,14 @@ func (datum ProjectData) AsCsvRecord() []string {
 	return []string{datum.BaseDir, datum.FullName, datum.Type}
 }
 
+func (datum ProjectData) ToString() string {
+	return filepath.Join(datum.BaseDir, datum.FullName)
+}
+
+func (datum ProjectData) Matchable() string {
+	return filepath.Join(datum.BaseDir, datum.FullName)
+}
+
 func FromCsvRecord(data []string) (ProjectData, error) {
 	return ProjectData{
 		BaseDir:  data[0],

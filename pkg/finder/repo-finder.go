@@ -2,7 +2,6 @@ package finder
 
 import (
 	"fmt"
-	"path/filepath"
 
 	alfred "ronkitay.com/griffin/pkg/alfred"
 	matcher "ronkitay.com/griffin/pkg/matcher"
@@ -15,7 +14,7 @@ func FindRepo(executableName string, noArchives bool, noDirs bool, alfredOutput 
 
 	regexPattern := matcher.BuildPattern(args)
 
-	matchingRepos := matcher.MatchRepos(allRepos, regexPattern)
+	matchingRepos := matcher.MatchItems(allRepos, regexPattern)
 
 	if alfredOutput {
 		result := alfred.AsAlfred(matchingRepos)
@@ -25,9 +24,13 @@ func FindRepo(executableName string, noArchives bool, noDirs bool, alfredOutput 
 	}
 }
 
-func printPaths(matchingRepos []repo.RepoData) {
-	for _, repo := range matchingRepos {
-		fmt.Println(filepath.Join(repo.BaseDir, repo.FullName))
+type Printable interface {
+	ToString() string
+}
+
+func printPaths[T Printable](matchingItems []T) {
+	for _, item := range matchingItems {
+		fmt.Println(item.ToString())
 	}
 }
 
@@ -36,14 +39,8 @@ func FindProjects(executableName string, alfredOutput bool, args []string) {
 
 	regexPattern := matcher.BuildPattern(args)
 
-	matchingProjects := matcher.MatchProjects(allProjects, regexPattern)
+	matchingProjects := matcher.MatchItems(allProjects, regexPattern)
 
-	printProjectPaths(matchingProjects)
+	printPaths(matchingProjects)
 
-}
-
-func printProjectPaths(matchingProjects []projectIndex.ProjectData) {
-	for _, project := range matchingProjects {
-		fmt.Println(filepath.Join(project.BaseDir, project.FullName))
-	}
 }

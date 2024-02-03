@@ -25,6 +25,14 @@ func (datum RepoData) AsCsvRecord() []string {
 	return []string{datum.BaseDir, datum.FullName, datum.Url, datum.Type}
 }
 
+func (datum RepoData) ToString() string {
+	return filepath.Join(datum.BaseDir, datum.FullName)
+}
+
+func (datum RepoData) Matchable() string {
+	return datum.FullName
+}
+
 func converter(noArchives bool, noDirs bool) func(csvData []string) (RepoData, error) {
 	return func(csvData []string) (RepoData, error) {
 		repoName := csvData[1]
