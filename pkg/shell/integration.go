@@ -61,6 +61,8 @@ func GenerateIntegration() {
 	}
 
 	function p() {
+		TEMP_LIST_FILE=$(mktemp)
+
 		griffin find-project $* > "${TEMP_LIST_FILE}"
 	
 		if [[ "$(cat "${TEMP_LIST_FILE}" | wc -l)" -eq "1" ]]; 
