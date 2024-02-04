@@ -75,6 +75,20 @@ func GenerateIntegration() {
 	
 		cd "${DIR_TO_SWITCH_TO}"
 	}
+
+	function op() {
+		TEMP_LIST_FILE=$(mktemp)
+		
+		griffin find-project $* > "${TEMP_LIST_FILE}"
+		
+		PROJECT_DIR=$(cat "${TEMP_LIST_FILE}" | fzf +m --preview 'tree -L 2 -C {}')
+		
+		rm "${TEMP_LIST_FILE}"
+		
+		if [[ -n "${PROJECT_DIR}" ]]; then
+			griffin open-in-ide "${PROJECT_DIR}"
+		fi
+	}
 	`
 
 	script := fmt.Sprintf(scriptTemplate, terminal.BOLD_COLOR, terminal.GREEN_COLOR, terminal.RESET_COLORS)
