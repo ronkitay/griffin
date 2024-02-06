@@ -6,14 +6,15 @@ import (
 	"os"
 	"path/filepath"
 
+	projectIndex "ronkitay.com/griffin/pkg/projectindex"
 	repo "ronkitay.com/griffin/pkg/repoindex"
 )
 
-func AsAlfred(matchingRepos []repo.RepoData) string {
+func ReposAsAlfred(matchingRepos []repo.RepoData) string {
 	var items []Item
 
 	for _, repo := range matchingRepos {
-		items = append(items, buildAlfredItem(repo))
+		items = append(items, buildAlfredItemForRepo(repo))
 	}
 
 	result := map[string][]Item{
@@ -29,7 +30,7 @@ func AsAlfred(matchingRepos []repo.RepoData) string {
 	return string(jsonData)
 }
 
-func buildAlfredItem(repo repo.RepoData) Item {
+func buildAlfredItemForRepo(repo repo.RepoData) Item {
 	repoFullPath := filepath.Join(repo.BaseDir, repo.FullName)
 	switch repo.Type {
 	case "dir":
@@ -101,6 +102,49 @@ func buildGitRepoLocation(repoDir string, repoName string, url string, locationT
 			Path: "icons/" + locationType + ".jpg",
 		},
 	}
+}
+
+func ProjectsAsAlfred(matchingProjects []projectIndex.ProjectData) string {
+	var items []Item
+
+	for _, project := range matchingProjects {
+		items = append(items, buildAlfredItemForProject(project))
+	}
+
+	result := map[string][]Item{
+		"items": items,
+	}
+
+	jsonData, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		fmt.Println("Error marshaling JSON:", err)
+		os.Exit(1)
+	}
+
+	return string(jsonData)
+}
+
+func buildAlfredItemForProject(project projectIndex.ProjectData) Item {
+	projectFullPath := filepath.Join(project.BaseDir, project.FullName)
+
+	return Item{
+		Valid:    true,
+		UID:      project.FullName,
+		Title:    project.FullName,
+		Subtitle: "Open in TERMINAL (🖥️) : " + projectFullPath,
+		Arg:      projectFullPath,
+		Mods: map[string]Modifier{
+			"ctrl": {
+				Valid:    true,
+				Arg:      projectFullPath,
+				Subtitle: "Open in EDITOR (📝): " + projectFullPath,
+			},
+		},
+		Icon: Icon{
+			Path: "icons/" + project.Type + ".jpg",
+		},
+	}
+
 }
 
 type Item struct {

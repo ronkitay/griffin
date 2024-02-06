@@ -114,6 +114,9 @@ func runFindProjectCommand(command *Command, executableName string) {
 	flag.BoolVar(&showFindRepoHelp, "h", false, "Show Help")
 	flag.BoolVar(&showFindRepoHelp, "help", false, "Show Help")
 
+	var alfredOutput bool
+	flag.BoolVar(&alfredOutput, "alfred", false, "Format output for Alfred")
+
 	flag.CommandLine.Parse(os.Args[2:])
 
 	if showFindRepoHelp {
@@ -121,7 +124,7 @@ func runFindProjectCommand(command *Command, executableName string) {
 	} else {
 		positionalArgs := flag.Args()
 
-		finder.FindProjects(executableName, false, positionalArgs)
+		finder.FindProjects(executableName, alfredOutput, positionalArgs)
 	}
 }
 func runBuildProjectIndexCommand(command *Command, executableName string) {

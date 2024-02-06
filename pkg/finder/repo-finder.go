@@ -17,7 +17,7 @@ func FindRepo(executableName string, noArchives bool, noDirs bool, alfredOutput 
 	matchingRepos := matcher.MatchItems(allRepos, regexPattern)
 
 	if alfredOutput {
-		result := alfred.AsAlfred(matchingRepos)
+		result := alfred.ReposAsAlfred(matchingRepos)
 		fmt.Println(result)
 	} else {
 		printPaths(matchingRepos)
@@ -41,6 +41,11 @@ func FindProjects(executableName string, alfredOutput bool, args []string) {
 
 	matchingProjects := matcher.MatchItems(allProjects, regexPattern)
 
-	printPaths(matchingProjects)
+	if alfredOutput {
+		result := alfred.ProjectsAsAlfred(matchingProjects)
+		fmt.Println(result)
+	} else {
+		printPaths(matchingProjects)
+	}
 
 }
