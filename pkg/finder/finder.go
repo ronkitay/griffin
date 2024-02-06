@@ -6,11 +6,11 @@ import (
 	alfred "ronkitay.com/griffin/pkg/alfred"
 	matcher "ronkitay.com/griffin/pkg/matcher"
 	projectIndex "ronkitay.com/griffin/pkg/projectindex"
-	repo "ronkitay.com/griffin/pkg/repoindex"
+	repoIndex "ronkitay.com/griffin/pkg/repoindex"
 )
 
 func FindRepo(executableName string, noArchives bool, noDirs bool, alfredOutput bool, args []string) {
-	allRepos := repo.LoadIndex(noArchives, noDirs)
+	allRepos := repoIndex.LoadIndex(noArchives, noDirs)
 
 	regexPattern := matcher.BuildPattern(args)
 
