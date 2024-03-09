@@ -21,5 +21,9 @@ out/*
 # Go workspace file
 go.work
 
+# Semantic Release
+.semrel/
+.generated-go-semantic-release-changelog.md
+
 # GoReleaser
 dist/
