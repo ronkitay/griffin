@@ -27,6 +27,15 @@ jobs:
       with:
         go-version: 1.21
 
+    - name: Test Griffin
+      run: make test
+
+    - name: Semantic Release
+      uses: cycjimmy/semantic-release-action@v4
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}        
+
     - name: Release Griffin
       env:
         GITHUB_TOKEN: ${{ secrets.TOKEN }}
