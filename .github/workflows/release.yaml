@@ -39,6 +39,9 @@ jobs:
             ]
       env:
         GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        GITLAB_TOKEN: ${{ secrets.TOKEN }}
+        GL_TOKEN: ${{ secrets.TOKEN }}
+        GH_TOKEN: ${{ secrets.TOKEN }}
 
     - name: Release Griffin
       env:
