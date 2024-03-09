@@ -39,7 +39,8 @@ jobs:
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        git add .generated-go-semantic-release-changelog.md .semrel/
+        [[ -f .generated-go-semantic-release-changelog.md ]] && git add .generated-go-semantic-release-changelog.md 
+        [[ -d .semrel/ ]] && git add .semrel/
         git diff --quiet && git diff --staged --quiet || (git commit -m 'Update generated files' && git push)        
 
     # - name: Semantic Release
