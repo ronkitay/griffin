@@ -1,5 +1,12 @@
 {
+    "name": "griffin",
+    "version": "0.0.8",
+    "description": "",
+    "author": "Ron Kitay",
+    "private": false,
+    "license": "MIT",
+
     "release": {
         "branches": ["main"]
-    }
+    }    
 }
