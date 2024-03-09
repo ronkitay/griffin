@@ -30,22 +30,20 @@ jobs:
     - name: Test Griffin
       run: make test
 
-    - name: Semantic Release
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+
+    - name: Install Semantic Release
+      run: npm install -g semantic-release @semantic-release/github @semantic-release/release-notes-generator conventional-changelog-conventionalcommits conventional-changelog-eslint
+
+    - name: Promote Version
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: semantic-release
 
-    # - name: Semantic Release
-    #   uses: cycjimmy/semantic-release-action@v4
-    #   with:
-    #       branches: |
-    #         [
-    #           "main"
-    #         ]
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Release Griffin
+    - name: Release Griffin Binary
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: make release
