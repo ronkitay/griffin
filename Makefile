@@ -7,11 +7,14 @@
 # SOURCES        := $(wildcard *.go src/*.go src/*/*.go) $(MAKEFILE)
 
 
+clean:
+	rm -rf dist
+
 build:
 	goreleaser build --clean --snapshot --skip=post-hooks
 
-release: build
-	goreleaser release --skip-publish
+release: build 
+	goreleaser release --clean --skip-publish
 
 
 .PHONY: build release
