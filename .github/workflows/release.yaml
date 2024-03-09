@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: read/write
 
 jobs:
   build:
@@ -38,9 +38,9 @@ jobs:
               "main"
             ]
       env:
-        GITHUB_TOKEN: ${{ secrets.TOKEN_V2 }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Release Griffin
       env:
-        GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: make release
