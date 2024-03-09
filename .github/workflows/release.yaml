@@ -35,6 +35,13 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Commit and push if changed
+      run: |
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+        git add .generated-go-semantic-release-changelog.md .semrel/
+        git diff --quiet && git diff --staged --quiet || (git commit -m 'Update generated files' && git push)        
+
     # - name: Semantic Release
     #   uses: cycjimmy/semantic-release-action@v4
     #   with:
