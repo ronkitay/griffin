@@ -5,7 +5,7 @@ clean:
 build:
 	goreleaser build --clean --snapshot --skip=post-hooks
 
-test: build
+test: #build
 	echo "Testing... TBD"
 
 release: test 
