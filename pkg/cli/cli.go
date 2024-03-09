@@ -134,7 +134,17 @@ func runShellIntegrationCommand(command *Command, executableName string) {
 	shell.GenerateIntegration()
 }
 func runConfigureCommand(command *Command, executableName string) {
-	panic(command.name + " not implemented yet!")
+	var configureHelp bool
+	flag.BoolVar(&configureHelp, "h", false, "Show Help")
+	flag.BoolVar(&configureHelp, "help", false, "Show Help")
+
+	flag.CommandLine.Parse(os.Args[2:])
+
+	if configureHelp {
+		printCommandHelp(executableName, command.name, true)
+	} else {
+		fmt.Println("Not implemented yet, please come back later")
+	}
 }
 func runInIDECommand(command *Command, executableName string) {
 	idelauncher.OpenInIDE(os.Args[2])
