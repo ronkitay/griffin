@@ -9,6 +9,7 @@ type IdeConfiguration struct {
 	DefaultIDE string `json:"default"`
 	GoLang     string `json:"go"`
 	Java       string `json:"java"`
+	Kotlin     string `json:"kotlin"`
 	Python     string `json:"python"`
 	NodeJS     string `json:"node"`
 }
