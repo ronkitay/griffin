@@ -34,9 +34,9 @@ func OpenInIDE(projectDir string) {
 func detectLanguage(projectDir string) string {
 	if exists(filepath.Join(projectDir, "requirements.txt")) || exists(filepath.Join(projectDir, "Pipfile")) {
 		return PYTHON_LANGUAGE
-	} else if exists(filepath.Join(projectDir, "build.gradle.kts")) {
+	} else if exists(filepath.Join(projectDir, "build.gradle.kts")) || exists(filepath.Join(projectDir, "settings.gradle.kts")) {
 		return KOTLIN_LANGUAGE
-	} else if exists(filepath.Join(projectDir, "build.gradle")) || exists(filepath.Join(projectDir, "pom.xml")) {
+	} else if exists(filepath.Join(projectDir, "build.gradle")) || exists(filepath.Join(projectDir, "pom.xml")) || exists(filepath.Join(projectDir, "settings.gradle")) {
 		return JAVA_LANGUAGE
 	} else if exists(filepath.Join(projectDir, "package.json")) {
 		return NODE_JS_LANGUAGE
