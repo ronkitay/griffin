@@ -2,6 +2,6 @@
     "cSpell.words": [
         "ronkitay"
     ],
-    "go.goroot": "/Users/ronk/.asdf/installs/golang/1.21.1/go",
-    "go.gopath": "/Users/ronk/.asdf/installs/golang/1.21.1/packages"
+    "go.goroot": "/Users/ronk/.asdf/installs/golang/1.23.3/go",
+    "go.gopath": "/Users/ronk/.asdf/installs/golang/1.23.3/packages"
 }
