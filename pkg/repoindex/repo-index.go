@@ -64,18 +64,29 @@ func LoadIndex(noArchives bool, noDirs bool) []RepoData {
 	return csvHelper.LoadIndex[RepoData](config.LoadConfiguration().RepoListLocation, converter(noArchives, noDirs))
 }
 
-func BuildRepoIndex() {
-	userHomeDir, _ := os.UserHomeDir()
+func BuildRepoIndex() error {
 	configuration := config.LoadConfiguration()
+	configManager, err := config.NewConfigurationManager()
+	if err != nil {
+		return fmt.Errorf("error initializing configuration: %v", err)
+	}
+
+	roots, err := configManager.GetRepoRoots()
+	if err != nil {
+		return fmt.Errorf("error getting repository roots: %v", err)
+	}
 
 	var repos []RepoData
-	for _, rootLocation := range configuration.UserConfiguration.RepoRoots {
-		interpolatedRootLocation := strings.Replace(rootLocation, "${HOME}", userHomeDir, -1)
-		reposFromRoot := locateRepos(interpolatedRootLocation)
+	for _, rootLocation := range roots {
+		reposFromRoot := locateRepos(rootLocation)
 		repos = append(repos, reposFromRoot...)
 	}
 
-	csvHelper.SaveIndex(configuration.RepoListLocation, repos)
+	if err := csvHelper.SaveIndex(configuration.RepoListLocation, repos); err != nil {
+		return fmt.Errorf("error saving repo index: %v", err)
+	}
+
+	return nil
 }
 
 func locateRepos(rootLocation string) []RepoData {

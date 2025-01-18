@@ -16,6 +16,7 @@ const (
 	JAVA_LANGUAGE    = "java"
 	KOTLIN_LANGUAGE  = "kotlin"
 	NODE_JS_LANGUAGE = "node"
+	GO_LANGUAGE = "golang"
 )
 
 func OpenInIDE(projectDir string) {
@@ -36,6 +37,8 @@ func detectLanguage(projectDir string) string {
 		return PYTHON_LANGUAGE
 	} else if exists(filepath.Join(projectDir, "build.gradle.kts")) || exists(filepath.Join(projectDir, "settings.gradle.kts")) {
 		return KOTLIN_LANGUAGE
+	} else if exists(filepath.Join(projectDir, "go.mod")) {
+		return GO_LANGUAGE
 	} else if exists(filepath.Join(projectDir, "build.gradle")) || exists(filepath.Join(projectDir, "pom.xml")) || exists(filepath.Join(projectDir, "settings.gradle")) {
 		return JAVA_LANGUAGE
 	} else if exists(filepath.Join(projectDir, "package.json")) {
@@ -49,6 +52,8 @@ func ideOrDefault(language string, ideConfiguration config.IdeConfiguration) str
 	switch language {
 	case PYTHON_LANGUAGE:
 		return ifNull(ideConfiguration.Python, ideConfiguration.DefaultIDE)
+	case GO_LANGUAGE:
+		return ifNull(ideConfiguration.GoLang, ideConfiguration.DefaultIDE)
 	case JAVA_LANGUAGE:
 		return ifNull(ideConfiguration.Java, ideConfiguration.DefaultIDE)
 	case KOTLIN_LANGUAGE:

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"ronkitay.com/griffin/pkg/configuration"
 	"ronkitay.com/griffin/pkg/finder"
 	"ronkitay.com/griffin/pkg/idelauncher"
 	"ronkitay.com/griffin/pkg/projectindex"
@@ -107,8 +108,13 @@ func runFindRepoCommand(command *Command, executableName string) {
 }
 
 func runBuildRepoIndexCommand(command *Command, executableName string) {
-	repoindex.BuildRepoIndex()
+	if err := repoindex.BuildRepoIndex(); err != nil {
+		fmt.Printf("Error building repo index: %v\n", err)
+		return
+	}
+	fmt.Println("Repository index built successfully")
 }
+
 func runFindProjectCommand(command *Command, executableName string) {
 	var showFindRepoHelp bool
 	flag.BoolVar(&showFindRepoHelp, "h", false, "Show Help")
@@ -127,27 +133,58 @@ func runFindProjectCommand(command *Command, executableName string) {
 		finder.FindProjects(executableName, alfredOutput, positionalArgs)
 	}
 }
+
 func runBuildProjectIndexCommand(command *Command, executableName string) {
 	projectindex.BuildProjectIndex()
 }
+
 func runShellIntegrationCommand(command *Command, executableName string) {
 	shell.GenerateIntegration()
 }
+
 func runConfigureCommand(command *Command, executableName string) {
 	var configureHelp bool
 	flag.BoolVar(&configureHelp, "h", false, "Show Help")
 	flag.BoolVar(&configureHelp, "help", false, "Show Help")
 
+	// Register configuration flags so they show up in help
+	configuration.RegisterFlags()
+
 	flag.CommandLine.Parse(os.Args[2:])
 
 	if configureHelp {
 		printCommandHelp(executableName, command.name, true)
-	} else {
-		fmt.Println("Not implemented yet, please come back later")
+	} else if err := configuration.HandleConfiguration(); err != nil {
+		fmt.Printf("Configuration error: %v\n", err)
 	}
 }
+
 func runInIDECommand(command *Command, executableName string) {
-	idelauncher.OpenInIDE(os.Args[2])
+	var showInIDEHelp bool
+	flag.BoolVar(&showInIDEHelp, "h", false, "Show Help")
+	flag.BoolVar(&showInIDEHelp, "help", false, "Show Help")
+
+	flag.CommandLine.Parse(os.Args[2:])
+
+	if showInIDEHelp {
+		printCommandHelp(executableName, command.name, true)
+		return
+	}
+
+	args := flag.Args()
+	if len(args) < 1 {
+		fmt.Printf("Error: Project directory path is required\n\n")
+		printCommandHelp(executableName, command.name, true)
+		return
+	}
+
+	projectDir := args[0]
+	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+		fmt.Printf("Error: Directory does not exist: %s\n", projectDir)
+		return
+	}
+
+	idelauncher.OpenInIDE(projectDir)
 }
 
 func printCommandHelp(executableName string, commandName string, hasFilters bool) {
