@@ -20,7 +20,7 @@ jobs:
         fetch-depth: 0
 
     - name: Install packages
-      run: HOMEBREW_NO_INSTALL_CLEANUP=1 brew install --cask goreleaser
+      run: HOMEBREW_NO_INSTALL_CLEANUP=1 brew install goreleaser
 
     - name: Set up Go
       uses: actions/setup-go@v5
