@@ -32,6 +32,19 @@ func OpenInIDE(projectDir string) {
 	openIDE(ide, projectDir)
 }
 
+func OpenInAlternativeIDE(projectDir string) {
+	ideConfiguration := config.LoadConfiguration().UserConfiguration.IdeConfiguration
+
+	if ideConfiguration.DefaultIDE == "" {
+		fmt.Println("Missing DefaultIDE configuration")
+		os.Exit(12)
+	}
+
+	language := detectLanguage(projectDir)
+	ide := alternativeIdeOrDefault(language, ideConfiguration)
+	openIDE(ide, projectDir)
+}
+
 func detectLanguage(projectDir string) string {
 	if exists(filepath.Join(projectDir, "requirements.txt")) || exists(filepath.Join(projectDir, "Pipfile")) {
 		return PYTHON_LANGUAGE
@@ -62,6 +75,27 @@ func ideOrDefault(language string, ideConfiguration config.IdeConfiguration) str
 		return ifNull(ideConfiguration.NodeJS, ideConfiguration.DefaultIDE)
 	default:
 		return ideConfiguration.DefaultIDE
+	}
+}
+
+func fallbackToDefaultAlternativeIDE(ide string, ideConfiguration config.IdeConfiguration) string {
+	return ifNull(ide, ifNull(ideConfiguration.DefaultIDEAlternative, ideConfiguration.DefaultIDE))
+}
+
+func alternativeIdeOrDefault(language string, ideConfiguration config.IdeConfiguration) string {
+	switch language {
+	case PYTHON_LANGUAGE:
+		return fallbackToDefaultAlternativeIDE(ideConfiguration.PythonAlternative, ideConfiguration)
+	case GO_LANGUAGE:
+		return fallbackToDefaultAlternativeIDE(ideConfiguration.GoLangAlternative, ideConfiguration)
+	case JAVA_LANGUAGE:
+		return fallbackToDefaultAlternativeIDE(ideConfiguration.JavaAlternative, ideConfiguration)
+	case KOTLIN_LANGUAGE:
+		return fallbackToDefaultAlternativeIDE(ideConfiguration.KotlinAlternative, ideConfiguration)
+	case NODE_JS_LANGUAGE:
+		return fallbackToDefaultAlternativeIDE(ideConfiguration.NodeJSAlternative, ideConfiguration)
+	default:
+		return fallbackToDefaultAlternativeIDE("", ideConfiguration)
 	}
 }
 

@@ -97,6 +97,11 @@ func buildGitRepoLocation(repoDir string, repoName string, url string, locationT
 				Arg:      repoDir,
 				Subtitle: "Open in EDITOR (📝): " + repoDir,
 			},
+			"ctrl+shift": {
+				Valid:    true,
+				Arg:      repoDir,
+				Subtitle: "Open in ALTERNATIVE EDITOR (🛠️): " + repoDir,
+			},
 		},
 		Icon: Icon{
 			Path: "icons/" + locationType + ".jpg",
@@ -139,12 +144,16 @@ func buildAlfredItemForProject(project projectIndex.ProjectData) Item {
 				Arg:      projectFullPath,
 				Subtitle: "Open in EDITOR (📝): " + projectFullPath,
 			},
+			"ctrl+shift": {
+				Valid:    true,
+				Arg:      projectFullPath,
+				Subtitle: "Open in ALTERNATIVE EDITOR (🛠️): " + projectFullPath,
+			},
 		},
 		Icon: Icon{
 			Path: "icons/" + project.Type + ".jpg",
 		},
 	}
-
 }
 
 type Item struct {

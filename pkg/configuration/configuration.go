@@ -11,12 +11,18 @@ import (
 )
 
 type IdeConfiguration struct {
-	DefaultIDE string `json:"default"`
-	GoLang     string `json:"go"`
-	Java       string `json:"java"`
-	Kotlin     string `json:"kotlin"`
-	Python     string `json:"python"`
-	NodeJS     string `json:"node"`
+	DefaultIDE            string `json:"default"`
+	DefaultIDEAlternative string `json:"defaultAlternative"`
+	GoLang                string `json:"go"`
+	GoLangAlternative     string `json:"goAlternative"`
+	Java                  string `json:"java"`
+	JavaAlternative       string `json:"javaAlternative"`
+	Kotlin                string `json:"kotlin"`
+	KotlinAlternative     string `json:"kotlinAlternative"`
+	Python                string `json:"python"`
+	PythonAlternative     string `json:"pythonAlternative"`
+	NodeJS                string `json:"node"`
+	NodeJSAlternative     string `json:"nodeAlternative"`
 }
 
 type UserConfiguration struct {
@@ -142,6 +148,30 @@ func (cm *ConfigurationManager) SetNodeIDE(ide string) {
 	cm.config.IdeConfiguration.NodeJS = ide
 }
 
+func (cm *ConfigurationManager) SetDefaultIDEAlternative(ide string) {
+	cm.config.IdeConfiguration.DefaultIDEAlternative = ide
+}
+
+func (cm *ConfigurationManager) SetGoIDEAlternative(ide string) {
+	cm.config.IdeConfiguration.GoLangAlternative = ide
+}
+
+func (cm *ConfigurationManager) SetJavaIDEAlternative(ide string) {
+	cm.config.IdeConfiguration.JavaAlternative = ide
+}
+
+func (cm *ConfigurationManager) SetKotlinIDEAlternative(ide string) {
+	cm.config.IdeConfiguration.KotlinAlternative = ide
+}
+
+func (cm *ConfigurationManager) SetPythonIDEAlternative(ide string) {
+	cm.config.IdeConfiguration.PythonAlternative = ide
+}
+
+func (cm *ConfigurationManager) SetNodeIDEAlternative(ide string) {
+	cm.config.IdeConfiguration.NodeJSAlternative = ide
+}
+
 func (cm *ConfigurationManager) Save() error {
 	data, err := json.MarshalIndent(cm.config, "", "    ")
 	if err != nil {
@@ -205,6 +235,12 @@ func RegisterFlags() {
 	flag.String("kotlin-ide", "", "Set Kotlin IDE")
 	flag.String("python-ide", "", "Set Python IDE")
 	flag.String("node-ide", "", "Set NodeJS IDE")
+	flag.String("default-ide-alt", "", "Set default IDE alternative")
+	flag.String("go-ide-alt", "", "Set Go IDE alternative")
+	flag.String("java-ide-alt", "", "Set Java IDE alternative")
+	flag.String("kotlin-ide-alt", "", "Set Kotlin IDE alternative")
+	flag.String("python-ide-alt", "", "Set Python IDE alternative")
+	flag.String("node-ide-alt", "", "Set NodeJS IDE alternative")
 }
 
 func HandleConfiguration() error {
@@ -219,6 +255,12 @@ func HandleConfiguration() error {
 	kotlinIDE := flag.Lookup("kotlin-ide").Value.String()
 	pythonIDE := flag.Lookup("python-ide").Value.String()
 	nodeIDE := flag.Lookup("node-ide").Value.String()
+	defaultIDEAlt := flag.Lookup("default-ide-alt").Value.String()
+	goIDEAlt := flag.Lookup("go-ide-alt").Value.String()
+	javaIDEAlt := flag.Lookup("java-ide-alt").Value.String()
+	kotlinIDEAlt := flag.Lookup("kotlin-ide-alt").Value.String()
+	pythonIDEAlt := flag.Lookup("python-ide-alt").Value.String()
+	nodeIDEAlt := flag.Lookup("node-ide-alt").Value.String()
 
 	configManager, err := NewConfigurationManager()
 	if err != nil {
@@ -255,6 +297,31 @@ func HandleConfiguration() error {
 	}
 	if nodeIDE != "" {
 		configManager.SetNodeIDE(nodeIDE)
+		changesMade = true
+	}
+
+	if defaultIDEAlt != "" {
+		configManager.SetDefaultIDEAlternative(defaultIDEAlt)
+		changesMade = true
+	}
+	if goIDEAlt != "" {
+		configManager.SetGoIDEAlternative(goIDEAlt)
+		changesMade = true
+	}
+	if javaIDEAlt != "" {
+		configManager.SetJavaIDEAlternative(javaIDEAlt)
+		changesMade = true
+	}
+	if kotlinIDEAlt != "" {
+		configManager.SetKotlinIDEAlternative(kotlinIDEAlt)
+		changesMade = true
+	}
+	if pythonIDEAlt != "" {
+		configManager.SetPythonIDEAlternative(pythonIDEAlt)
+		changesMade = true
+	}
+	if nodeIDEAlt != "" {
+		configManager.SetNodeIDEAlternative(nodeIDEAlt)
 		changesMade = true
 	}
 

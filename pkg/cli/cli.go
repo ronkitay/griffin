@@ -161,8 +161,11 @@ func runConfigureCommand(command *Command, executableName string) {
 
 func runInIDECommand(command *Command, executableName string) {
 	var showInIDEHelp bool
+	var useAlternative bool
+
 	flag.BoolVar(&showInIDEHelp, "h", false, "Show Help")
 	flag.BoolVar(&showInIDEHelp, "help", false, "Show Help")
+	flag.BoolVar(&useAlternative, "use-alternative", false, "Use alternative IDE")
 
 	flag.CommandLine.Parse(os.Args[2:])
 
@@ -184,7 +187,11 @@ func runInIDECommand(command *Command, executableName string) {
 		return
 	}
 
-	idelauncher.OpenInIDE(projectDir)
+	if useAlternative {
+		idelauncher.OpenInAlternativeIDE(projectDir)
+	} else {
+		idelauncher.OpenInIDE(projectDir)
+	}
 }
 
 func printCommandHelp(executableName string, commandName string, hasFilters bool) {
