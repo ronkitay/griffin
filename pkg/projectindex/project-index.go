@@ -108,6 +108,7 @@ var fileToLanguageMapping = map[string]string{
 	"go.mod":           "go",
 	"Pipfile":          "python",
 	"requirements.txt": "python",
+	"Cargo.toml":       "rust",
 	"package.json":     "node",
 }
 

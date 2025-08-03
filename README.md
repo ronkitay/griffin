@@ -11,7 +11,7 @@ A CLI tool for indexing all git repos and code projects on your computer
 Create a configuration file at `~/.config/griffin/config.json`
 
 Configure the paths to be indexed.
-Configure the IDEs to be used per programming language. (Currently only go, java, python and node are supported)
+Configure the IDEs to be used per programming language. (Currently supports go, java, kotlin, python, node, and rust)
 
 Example:
 
@@ -26,7 +26,8 @@ Example:
         "go": "GoLand.app",
         "java": "IntelliJ IDEA CE.app",
         "python": "PyCharm CE.app",
-        "node": "WebStorm.app"
+        "node": "WebStorm.app",
+        "rust": "RustRover.app"
     }
 }
 ```

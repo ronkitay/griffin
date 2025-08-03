@@ -19,6 +19,8 @@ type IdeConfiguration struct {
 	JavaAlternative       string `json:"javaAlternative"`
 	Kotlin                string `json:"kotlin"`
 	KotlinAlternative     string `json:"kotlinAlternative"`
+	Rust                  string `json:"rust"`
+	RustAlternative       string `json:"rustAlternative"`
 	Python                string `json:"python"`
 	PythonAlternative     string `json:"pythonAlternative"`
 	NodeJS                string `json:"node"`
@@ -148,6 +150,10 @@ func (cm *ConfigurationManager) SetNodeIDE(ide string) {
 	cm.config.IdeConfiguration.NodeJS = ide
 }
 
+func (cm *ConfigurationManager) SetRustIDE(ide string) {
+	cm.config.IdeConfiguration.Rust = ide
+}
+
 func (cm *ConfigurationManager) SetDefaultIDEAlternative(ide string) {
 	cm.config.IdeConfiguration.DefaultIDEAlternative = ide
 }
@@ -170,6 +176,10 @@ func (cm *ConfigurationManager) SetPythonIDEAlternative(ide string) {
 
 func (cm *ConfigurationManager) SetNodeIDEAlternative(ide string) {
 	cm.config.IdeConfiguration.NodeJSAlternative = ide
+}
+
+func (cm *ConfigurationManager) SetRustIDEAlternative(ide string) {
+	cm.config.IdeConfiguration.RustAlternative = ide
 }
 
 func (cm *ConfigurationManager) Save() error {
@@ -235,12 +245,14 @@ func RegisterFlags() {
 	flag.String("kotlin-ide", "", "Set Kotlin IDE")
 	flag.String("python-ide", "", "Set Python IDE")
 	flag.String("node-ide", "", "Set NodeJS IDE")
+	flag.String("rust-ide", "", "Set Rust IDE")
 	flag.String("default-ide-alt", "", "Set default IDE alternative")
 	flag.String("go-ide-alt", "", "Set Go IDE alternative")
 	flag.String("java-ide-alt", "", "Set Java IDE alternative")
 	flag.String("kotlin-ide-alt", "", "Set Kotlin IDE alternative")
 	flag.String("python-ide-alt", "", "Set Python IDE alternative")
 	flag.String("node-ide-alt", "", "Set NodeJS IDE alternative")
+	flag.String("rust-ide-alt", "", "Set Rust IDE alternative")
 }
 
 func HandleConfiguration() error {
@@ -255,12 +267,14 @@ func HandleConfiguration() error {
 	kotlinIDE := flag.Lookup("kotlin-ide").Value.String()
 	pythonIDE := flag.Lookup("python-ide").Value.String()
 	nodeIDE := flag.Lookup("node-ide").Value.String()
+	rustIDE := flag.Lookup("rust-ide").Value.String()
 	defaultIDEAlt := flag.Lookup("default-ide-alt").Value.String()
 	goIDEAlt := flag.Lookup("go-ide-alt").Value.String()
 	javaIDEAlt := flag.Lookup("java-ide-alt").Value.String()
 	kotlinIDEAlt := flag.Lookup("kotlin-ide-alt").Value.String()
 	pythonIDEAlt := flag.Lookup("python-ide-alt").Value.String()
 	nodeIDEAlt := flag.Lookup("node-ide-alt").Value.String()
+	rustIDEAlt := flag.Lookup("rust-ide-alt").Value.String()
 
 	configManager, err := NewConfigurationManager()
 	if err != nil {
@@ -299,6 +313,10 @@ func HandleConfiguration() error {
 		configManager.SetNodeIDE(nodeIDE)
 		changesMade = true
 	}
+	if rustIDE != "" {
+		configManager.SetRustIDE(rustIDE)
+		changesMade = true
+	}
 
 	if defaultIDEAlt != "" {
 		configManager.SetDefaultIDEAlternative(defaultIDEAlt)
@@ -324,6 +342,10 @@ func HandleConfiguration() error {
 		configManager.SetNodeIDEAlternative(nodeIDEAlt)
 		changesMade = true
 	}
+	if rustIDEAlt != "" {
+		configManager.SetRustIDEAlternative(rustIDEAlt)
+		changesMade = true
+	}
 
 	// Save if any changes were made
 	if changesMade {
@@ -346,6 +368,7 @@ func HandleConfiguration() error {
 	if config.IdeConfiguration.Kotlin != "" { fmt.Printf("    Kotlin IDE: %s\n", config.IdeConfiguration.Kotlin) }
 	if config.IdeConfiguration.Python != "" { fmt.Printf("    Python IDE: %s\n", config.IdeConfiguration.Python) }
 	if config.IdeConfiguration.NodeJS != "" { fmt.Printf("    NodeJS IDE: %s\n", config.IdeConfiguration.NodeJS) }
+	if config.IdeConfiguration.Rust != "" { fmt.Printf("    Rust IDE: %s\n", config.IdeConfiguration.Rust) }
 
 	return nil
 }

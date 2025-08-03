@@ -17,6 +17,7 @@ const (
 	KOTLIN_LANGUAGE  = "kotlin"
 	NODE_JS_LANGUAGE = "node"
 	GO_LANGUAGE = "golang"
+	RUST_LANGUAGE    = "rust"
 )
 
 func OpenInIDE(projectDir string) {
@@ -56,6 +57,8 @@ func detectLanguage(projectDir string) string {
 		return JAVA_LANGUAGE
 	} else if exists(filepath.Join(projectDir, "package.json")) {
 		return NODE_JS_LANGUAGE
+	} else if exists(filepath.Join(projectDir, "Cargo.toml")) {
+		return RUST_LANGUAGE
 	} else {
 		return UNSUPPORTED_LANGUAGE
 	}
@@ -73,6 +76,8 @@ func ideOrDefault(language string, ideConfiguration config.IdeConfiguration) str
 		return ifNull(ideConfiguration.Kotlin, ideConfiguration.DefaultIDE)
 	case NODE_JS_LANGUAGE:
 		return ifNull(ideConfiguration.NodeJS, ideConfiguration.DefaultIDE)
+	case RUST_LANGUAGE:
+		return ifNull(ideConfiguration.Rust, ideConfiguration.DefaultIDE)
 	default:
 		return ideConfiguration.DefaultIDE
 	}
@@ -94,6 +99,8 @@ func alternativeIdeOrDefault(language string, ideConfiguration config.IdeConfigu
 		return fallbackToDefaultAlternativeIDE(ideConfiguration.KotlinAlternative, ideConfiguration)
 	case NODE_JS_LANGUAGE:
 		return fallbackToDefaultAlternativeIDE(ideConfiguration.NodeJSAlternative, ideConfiguration)
+	case RUST_LANGUAGE:
+		return fallbackToDefaultAlternativeIDE(ideConfiguration.RustAlternative, ideConfiguration)
 	default:
 		return fallbackToDefaultAlternativeIDE("", ideConfiguration)
 	}
