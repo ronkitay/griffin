@@ -5,7 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-
+	"runtime"
+	
 	config "ronkitay.com/griffin/pkg/configuration"
 )
 
@@ -129,9 +130,25 @@ func openIDE(ide string, projectDir string) {
 		}
 		rootDirectory = currentDir
 	}
-	cmd := exec.Command("open", "-na", ide, "--args", rootDirectory)
-	err := cmd.Run()
+
+	var cmd *exec.Cmd
+	switch detectOS() {
+	case "darwin":
+		cmd = exec.Command("open", "-na", ide, "--args", rootDirectory)
+	case "linux":
+		cmd = exec.Command(ide, rootDirectory)
+	default:
+		fmt.Println("Unsupported OS for launching IDE")
+		return
+	}
+
+	err := cmd.Start()
 	if err != nil {
 		fmt.Println("Error opening IDE (", ide, "):", err)
 	}
 }
+
+func detectOS() string {
+	return runtime.GOOS
+}
+
