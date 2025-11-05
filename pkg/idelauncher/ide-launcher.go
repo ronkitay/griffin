@@ -48,7 +48,7 @@ func OpenInAlternativeIDE(projectDir string) {
 }
 
 func detectLanguage(projectDir string) string {
-	if exists(filepath.Join(projectDir, "requirements.txt")) || exists(filepath.Join(projectDir, "Pipfile")  || exists(filepath.Join(projectDir, "poetry.toml") || exists(filepath.Join(projectDir, "pyproject.toml")) {
+	if exists(filepath.Join(projectDir, "requirements.txt")) || exists(filepath.Join(projectDir, "Pipfile"))  || exists(filepath.Join(projectDir, "poetry.toml")) || exists(filepath.Join(projectDir, "pyproject.toml")) {
 		return PYTHON_LANGUAGE
 	} else if exists(filepath.Join(projectDir, "build.gradle.kts")) || exists(filepath.Join(projectDir, "settings.gradle.kts")) {
 		return KOTLIN_LANGUAGE
