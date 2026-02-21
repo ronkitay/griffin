@@ -76,9 +76,10 @@ func BuildRepoIndex() error {
 		return fmt.Errorf("error getting repository roots: %v", err)
 	}
 
+	processedRemotes := make(map[string]struct{})
 	var repos []RepoData
 	for _, rootLocation := range roots {
-		reposFromRoot := locateRepos(rootLocation)
+		reposFromRoot := locateRepos(rootLocation, processedRemotes)
 		repos = append(repos, reposFromRoot...)
 	}
 
@@ -89,10 +90,10 @@ func BuildRepoIndex() error {
 	return nil
 }
 
-func locateRepos(rootLocation string) []RepoData {
+func locateRepos(rootLocation string, processedRemotes map[string]struct{}) []RepoData {
 	var repos []RepoData
 
-	err := filepath.Walk(rootLocation, visit(rootLocation, &repos))
+	err := filepath.Walk(rootLocation, visit(rootLocation, &repos, processedRemotes))
 	if err != nil {
 		fmt.Printf("Error walking the path %v: %v\n", rootLocation, err)
 	}
@@ -102,7 +103,7 @@ func locateRepos(rootLocation string) []RepoData {
 	return repos
 }
 
-func visit(rootLocation string, paths *[]RepoData) filepath.WalkFunc {
+func visit(rootLocation string, paths *[]RepoData, processedRemotes map[string]struct{}) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			fmt.Println(err) // can't walk here,
@@ -123,6 +124,29 @@ func visit(rootLocation string, paths *[]RepoData) filepath.WalkFunc {
 					repoType := repoType(gitHttpUrl)
 					repoData := RepoData{BaseDir: repoDir, FullName: repoName, Url: gitHttpUrl, Type: repoType}
 					*paths = append(*paths, repoData)
+
+					if _, ok := processedRemotes[remoteURL]; !ok {
+						processedRemotes[remoteURL] = struct{}{}
+						worktrees, err := getWorktrees(path)
+						if err == nil {
+							for _, wtPath := range worktrees {
+								if wtPath == path {
+									continue
+								}
+
+								// Check if inside rootLocation
+								rel, err := filepath.Rel(rootLocation, wtPath)
+								if err == nil && !strings.HasPrefix(rel, "..") {
+									// Inside
+									wtDir, wtName := dirAndName(rootLocation, wtPath)
+									*paths = append(*paths, RepoData{BaseDir: wtDir, FullName: wtName, Url: gitHttpUrl, Type: repoType})
+								} else {
+									// Outside
+									*paths = append(*paths, RepoData{BaseDir: filepath.Dir(wtPath), FullName: filepath.Base(wtPath), Url: gitHttpUrl, Type: repoType})
+								}
+							}
+						}
+					}
 
 					*paths = addParents(*paths, rootLocation, path)
 					return filepath.SkipDir
@@ -206,6 +230,27 @@ func gitURLToHTTP(url string) string {
 	url = GIT_URL_REGEX.ReplaceAllString(url, "https://${1}/")
 	url = strings.TrimSuffix(url, ".git")
 	return url
+}
+
+func getWorktrees(dir string) ([]string, error) {
+	cmd := exec.Command("git", "worktree", "list", "--porcelain")
+	cmd.Dir = dir
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list worktrees: %v", err)
+	}
+
+	var worktrees []string
+	scanner := bufio.NewScanner(strings.NewReader(string(output)))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "worktree ") {
+			path := strings.TrimPrefix(line, "worktree ")
+			worktrees = append(worktrees, path)
+		}
+	}
+	return worktrees, nil
 }
 
 func repoType(url string) string {
