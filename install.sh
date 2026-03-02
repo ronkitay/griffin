@@ -34,6 +34,12 @@ else
   echo "Created .zshrc with ${HOME}/tools in PATH"
 fi
 
+# Add shell integration if not already present
+if ! grep -q 'griffin shell-integration' "$ZSHRC"; then
+  echo 'source <(griffin shell-integration)' >> "$ZSHRC"
+  echo "Added griffin shell integration to .zshrc"
+fi
+
 # Remove quarantine attribute (macOS)
 xattr -d com.apple.quarantine "${HOME}/tools/griffin" 2>/dev/null || true
 
