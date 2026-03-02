@@ -22,34 +22,35 @@ echo "Downloading griffin for ${OS}/${ARCH}..."
 curl -sL -o "${HOME}/tools/griffin" "$RELEASE_URL"
 chmod +x "${HOME}/tools/griffin"
 
-# Add to PATH in .zshrc if not already present
+# Check what needs to be added to .zshrc
 ZSHRC="${HOME}/.zshrc"
-NEEDS_BACKUP=0
+NEED_PATH=false
+NEED_INTEGRATION=false
 
-if [ -f "$ZSHRC" ]; then
-  if ! grep -q '${HOME}/tools' "$ZSHRC"; then
-    if [ $NEEDS_BACKUP -eq 0 ]; then
-      cp "$ZSHRC" "$ZSHRC.backup"
-      echo "Backed up .zshrc to .zshrc.backup"
-      NEEDS_BACKUP=1
-    fi
+if [ ! -f "$ZSHRC" ] || ! grep -q '${HOME}/tools' "$ZSHRC"; then
+  NEED_PATH=true
+fi
+
+if [ ! -f "$ZSHRC" ] || ! grep -q 'griffin shell-integration' "$ZSHRC"; then
+  NEED_INTEGRATION=true
+fi
+
+# If any changes are needed, back up the file first
+if [ "$NEED_PATH" = true ] || [ "$NEED_INTEGRATION" = true ]; then
+  if [ -f "$ZSHRC" ]; then
+    cp "$ZSHRC" "$ZSHRC.griffin-backup"
+    echo "Backed up .zshrc to .zshrc.griffin-backup"
+  fi
+  
+  if [ "$NEED_PATH" = true ]; then
     echo 'export PATH="${HOME}/tools:$PATH"' >> "$ZSHRC"
     echo "Added ${HOME}/tools to PATH in .zshrc"
   fi
-else
-  echo 'export PATH="${HOME}/tools:$PATH"' > "$ZSHRC"
-  echo "Created .zshrc with ${HOME}/tools in PATH"
-fi
-
-# Add shell integration if not already present
-if ! grep -q 'griffin shell-integration' "$ZSHRC"; then
-  if [ $NEEDS_BACKUP -eq 0 ] && [ -f "$ZSHRC" ]; then
-    cp "$ZSHRC" "$ZSHRC.backup"
-    echo "Backed up .zshrc to .zshrc.backup"
-    NEEDS_BACKUP=1
+  
+  if [ "$NEED_INTEGRATION" = true ]; then
+    echo 'source <(griffin shell-integration)' >> "$ZSHRC"
+    echo "Added griffin shell integration to .zshrc"
   fi
-  echo 'source <(griffin shell-integration)' >> "$ZSHRC"
-  echo "Added griffin shell integration to .zshrc"
 fi
 
 # Remove quarantine attribute (macOS)
