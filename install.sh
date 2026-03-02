@@ -24,8 +24,15 @@ chmod +x "${HOME}/tools/griffin"
 
 # Add to PATH in .zshrc if not already present
 ZSHRC="${HOME}/.zshrc"
+NEEDS_BACKUP=0
+
 if [ -f "$ZSHRC" ]; then
   if ! grep -q '${HOME}/tools' "$ZSHRC"; then
+    if [ $NEEDS_BACKUP -eq 0 ]; then
+      cp "$ZSHRC" "$ZSHRC.backup"
+      echo "Backed up .zshrc to .zshrc.backup"
+      NEEDS_BACKUP=1
+    fi
     echo 'export PATH="${HOME}/tools:$PATH"' >> "$ZSHRC"
     echo "Added ${HOME}/tools to PATH in .zshrc"
   fi
@@ -36,6 +43,11 @@ fi
 
 # Add shell integration if not already present
 if ! grep -q 'griffin shell-integration' "$ZSHRC"; then
+  if [ $NEEDS_BACKUP -eq 0 ] && [ -f "$ZSHRC" ]; then
+    cp "$ZSHRC" "$ZSHRC.backup"
+    echo "Backed up .zshrc to .zshrc.backup"
+    NEEDS_BACKUP=1
+  fi
   echo 'source <(griffin shell-integration)' >> "$ZSHRC"
   echo "Added griffin shell integration to .zshrc"
 fi
