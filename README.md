@@ -4,6 +4,20 @@ GRIFFIN - **G**it **R**epository **I**ndexer for **F**uzzy **F**inding and **IN*
 
 A CLI tool for indexing all git repos and code projects on your computer
 
+## Installation
+
+### Quick Install (One-liner)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/ronkitay/griffin/main/install.sh | sh
+```
+
+This will:
+- Download the latest griffin binary for your system
+- Install it to `${HOME}/tools/`
+- Add `${HOME}/tools` to your PATH in `~/.zshrc` (if not already present)
+- Remove the quarantine attribute on macOS
+
 ## Usage
 
 ### Configuring
