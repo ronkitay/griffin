@@ -3,23 +3,52 @@
 set -e
 
 # Determine OS and architecture
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+OS=$(uname -s)
 ARCH=$(uname -m)
 
-# Normalize architecture names
+# Normalize OS and architecture names to match release artifacts
+case "$OS" in
+  Darwin) OS="Darwin" ;;
+  Linux) OS="Linux" ;;
+  *) echo "Unsupported OS: $OS"; exit 1 ;;
+esac
+
 case "$ARCH" in
-  x86_64) ARCH="amd64" ;;
+  x86_64) ARCH="x86_64" ;;
+  amd64) ARCH="x86_64" ;;
   aarch64) ARCH="arm64" ;;
+  arm64) ARCH="arm64" ;;
+  i386|i686) ARCH="i386" ;;
+  *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
 # Create tools directory
 mkdir -p "${HOME}/tools"
 
-# Download and extract the binary
-RELEASE_URL="https://github.com/ronkitay/griffin/releases/latest/download/griffin-${OS}-${ARCH}"
+# Determine file extension based on OS
+case "$OS" in
+  Darwin|Linux) EXT="tar.gz" ;;
+  Windows) EXT="zip" ;;
+esac
+
+# Construct the download URL
+RELEASE_URL="https://github.com/ronkitay/griffin/releases/latest/download/griffin_${OS}_${ARCH}.${EXT}"
 
 echo "Downloading griffin for ${OS}/${ARCH}..."
-curl -sL -o "${HOME}/tools/griffin" "$RELEASE_URL"
+TEMP_FILE="${HOME}/tools/griffin.${EXT}"
+curl -sL -o "$TEMP_FILE" "$RELEASE_URL" || { echo "Failed to download from $RELEASE_URL"; exit 1; }
+
+# Extract the binary
+case "$EXT" in
+  tar.gz)
+    tar -xzf "$TEMP_FILE" -C "${HOME}/tools" griffin || { echo "Failed to extract $TEMP_FILE"; exit 1; }
+    ;;
+  zip)
+    unzip -o "$TEMP_FILE" -d "${HOME}/tools" griffin || { echo "Failed to extract $TEMP_FILE"; exit 1; }
+    ;;
+esac
+
+rm "$TEMP_FILE"
 chmod +x "${HOME}/tools/griffin"
 
 # Check what needs to be added to .zshrc
