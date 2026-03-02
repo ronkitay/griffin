@@ -16,8 +16,7 @@ esac
 mkdir -p "${HOME}/tools"
 
 # Download and extract the binary
-REPO="your-username/griffin"  # Update with actual repo
-RELEASE_URL="https://github.com/${REPO}/releases/latest/download/griffin-${OS}-${ARCH}"
+RELEASE_URL="https://github.com/ronkitay/griffin/releases/latest/download/griffin-${OS}-${ARCH}"
 
 echo "Downloading griffin for ${OS}/${ARCH}..."
 curl -sL -o "${HOME}/tools/griffin" "$RELEASE_URL"

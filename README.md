@@ -9,7 +9,7 @@ A CLI tool for indexing all git repos and code projects on your computer
 ### Quick Install (One-liner)
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/your-username/griffin/main/install.sh | sh
+curl -sSL https://raw.githubusercontent.com/ronkitay/griffin/main/install.sh | sh
 ```
 
 This will:
