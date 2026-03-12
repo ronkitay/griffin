@@ -141,8 +141,8 @@ func visit(rootLocation string, paths *[]RepoData, processedRemotes map[string]s
 									wtDir, wtName := dirAndName(rootLocation, wtPath)
 									*paths = append(*paths, RepoData{BaseDir: wtDir, FullName: wtName, Url: gitHttpUrl, Type: repoType})
 								} else {
-									// Outside
-									*paths = append(*paths, RepoData{BaseDir: filepath.Dir(wtPath), FullName: filepath.Base(wtPath), Url: gitHttpUrl, Type: repoType})
+									// Outside - use repo name for the worktree
+									*paths = append(*paths, RepoData{BaseDir: filepath.Dir(wtPath), FullName: repoName, Url: gitHttpUrl, Type: repoType})
 								}
 							}
 						}

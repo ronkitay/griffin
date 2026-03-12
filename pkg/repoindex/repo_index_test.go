@@ -49,7 +49,7 @@ func TestLocateRepos_Worktrees(t *testing.T) {
 		if r.FullName == "wt-inside" {
 			foundWtInside = true
 		}
-		if r.FullName == "wt-outside" {
+		if r.FullName == "my-repo" {
 			foundWtOutside = true
 		}
 	}
