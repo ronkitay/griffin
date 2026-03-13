@@ -10,14 +10,32 @@ APPLY=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --major)
+      if [[ -n "$MODE" ]]; then
+        echo "Error: Cannot specify multiple modes (--major, --minor, --patch)"
+        echo ""
+        echo "Usage: $0 (--major | --minor | --patch) [--apply]"
+        exit 1
+      fi
       MODE="major"
       shift
       ;;
     --minor)
+      if [[ -n "$MODE" ]]; then
+        echo "Error: Cannot specify multiple modes (--major, --minor, --patch)"
+        echo ""
+        echo "Usage: $0 (--major | --minor | --patch) [--apply]"
+        exit 1
+      fi
       MODE="minor"
       shift
       ;;
     --patch)
+      if [[ -n "$MODE" ]]; then
+        echo "Error: Cannot specify multiple modes (--major, --minor, --patch)"
+        echo ""
+        echo "Usage: $0 (--major | --minor | --patch) [--apply]"
+        exit 1
+      fi
       MODE="patch"
       shift
       ;;
