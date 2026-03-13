@@ -6,57 +6,70 @@ set -euo pipefail
 MODE=""
 APPLY=false
 
-# Parse arguments
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    --major)
+# Convert long options to short options
+for arg in "$@"; do
+  shift
+  case "$arg" in
+    '--major')  set -- "$@" '-M' ;;
+    '--minor')  set -- "$@" '-m' ;;
+    '--patch')  set -- "$@" '-p' ;;
+    '--apply')  set -- "$@" '-a' ;;
+    '--help')   set -- "$@" '-h' ;;
+    *)          set -- "$@" "$arg" ;;
+  esac
+done
+
+# Parse options using getopts
+while getopts ":Mmpha" option; do
+  case "${option}" in
+    M)
       if [[ -n "$MODE" ]]; then
-        echo "Error: Cannot specify multiple modes (--major, --minor, --patch)"
-        echo ""
-        echo "Usage: $0 (--major | --minor | --patch) [--apply]"
+        echo "Error: Cannot specify multiple modes (-M, -m, -p / --major, --minor, --patch)"
         exit 1
       fi
       MODE="major"
-      shift
       ;;
-    --minor)
+    m)
       if [[ -n "$MODE" ]]; then
-        echo "Error: Cannot specify multiple modes (--major, --minor, --patch)"
-        echo ""
-        echo "Usage: $0 (--major | --minor | --patch) [--apply]"
+        echo "Error: Cannot specify multiple modes (-M, -m, -p / --major, --minor, --patch)"
         exit 1
       fi
       MODE="minor"
-      shift
       ;;
-    --patch)
+    p)
       if [[ -n "$MODE" ]]; then
-        echo "Error: Cannot specify multiple modes (--major, --minor, --patch)"
-        echo ""
-        echo "Usage: $0 (--major | --minor | --patch) [--apply]"
+        echo "Error: Cannot specify multiple modes (-M, -m, -p / --major, --minor, --patch)"
         exit 1
       fi
       MODE="patch"
-      shift
       ;;
-    --apply)
+    a)
       APPLY=true
-      shift
+      ;;
+    h)
+      echo "Usage: $0 (-M | -m | -p | --major | --minor | --patch) [-a | --apply]"
+      echo ""
+      echo "Options:"
+      echo "  -M, --major   Bump major version"
+      echo "  -m, --minor   Bump minor version"
+      echo "  -p, --patch   Bump patch version"
+      echo "  -a, --apply   Actually push the tag (default: dry-run)"
+      echo "  -h, --help    Show this help message"
+      exit 0
       ;;
     *)
-      echo "Error: Unknown option '$1'"
-      echo ""
-      echo "Usage: $0 (--major | --minor | --patch) [--apply]"
+      echo "Error: Invalid option '$OPTARG'"
+      echo "Usage: $0 (-M | -m | -p | --major | --minor | --patch) [-a | --apply]"
       exit 1
       ;;
   esac
 done
+shift $((OPTIND - 1))
 
 # Validate that a mode was selected
 if [[ -z "$MODE" ]]; then
-  echo "Error: Must specify one of --major, --minor, or --patch"
-  echo ""
-  echo "Usage: $0 (--major | --minor | --patch) [--apply]"
+  echo "Error: Must specify one of -M, -m, -p (or --major, --minor, --patch)"
+  echo "Usage: $0 (-M | -m | -p | --major | --minor | --patch) [-a | --apply]"
   exit 1
 fi
 
