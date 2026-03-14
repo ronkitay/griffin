@@ -31,6 +31,9 @@ func (datum RepoData) ToString() string {
 }
 
 func (datum RepoData) Matchable() string {
+	if datum.Alias != "" {
+		return datum.FullName + " " + datum.Alias
+	}
 	return datum.FullName
 }
 
