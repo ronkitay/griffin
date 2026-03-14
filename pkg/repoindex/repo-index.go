@@ -19,10 +19,11 @@ type RepoData struct {
 	FullName string
 	Url      string
 	Type     string
+	Alias    string
 }
 
 func (datum RepoData) AsCsvRecord() []string {
-	return []string{datum.BaseDir, datum.FullName, datum.Url, datum.Type}
+	return []string{datum.BaseDir, datum.FullName, datum.Url, datum.Type, datum.Alias}
 }
 
 func (datum RepoData) ToString() string {
@@ -39,20 +40,24 @@ func converter(noArchives bool, noDirs bool) func(csvData []string) (RepoData, e
 		locationType := csvData[3]
 		url := csvData[2]
 		parentDir := csvData[0]
+		alias := ""
+		if len(csvData) > 4 {
+			alias = csvData[4]
+		}
 
 		switch locationType {
 		case "dir":
 			if !noDirs {
-				return RepoData{BaseDir: parentDir, FullName: repoName, Type: "dir"}, nil
+				return RepoData{BaseDir: parentDir, FullName: repoName, Type: "dir", Alias: alias}, nil
 			}
 		case "archive":
 			if !noArchives {
-				return RepoData{BaseDir: parentDir, FullName: repoName, Url: url, Type: locationType}, nil
+				return RepoData{BaseDir: parentDir, FullName: repoName, Url: url, Type: locationType, Alias: alias}, nil
 			}
 		case "gitlab":
 			fallthrough
 		case "github":
-			return RepoData{BaseDir: parentDir, FullName: repoName, Url: url, Type: locationType}, nil
+			return RepoData{BaseDir: parentDir, FullName: repoName, Url: url, Type: locationType, Alias: alias}, nil
 		}
 
 		return RepoData{}, errors.New("Path skipped or not supported")
@@ -139,10 +144,10 @@ func visit(rootLocation string, paths *[]RepoData, processedRemotes map[string]s
 								if err == nil && !strings.HasPrefix(rel, "..") {
 									// Inside
 									wtDir, wtName := dirAndName(rootLocation, wtPath)
-									*paths = append(*paths, RepoData{BaseDir: wtDir, FullName: wtName, Url: gitHttpUrl, Type: repoType})
+									*paths = append(*paths, RepoData{BaseDir: wtDir, FullName: wtName, Url: gitHttpUrl, Type: repoType, Alias: repoName})
 								} else {
-									// Outside - use repo name for the worktree
-									*paths = append(*paths, RepoData{BaseDir: filepath.Dir(wtPath), FullName: repoName, Url: gitHttpUrl, Type: repoType})
+									// Outside - use actual directory name with repo name as alias
+									*paths = append(*paths, RepoData{BaseDir: filepath.Dir(wtPath), FullName: filepath.Base(wtPath), Url: gitHttpUrl, Type: repoType, Alias: repoName})
 								}
 							}
 						}
@@ -167,7 +172,7 @@ func visit(rootLocation string, paths *[]RepoData, processedRemotes map[string]s
 						archiveData := strings.Split(cleanedLine, ";")
 						gitHttpUrl := gitURLToHTTP(archiveData[1])
 						archiveDir, archiveName := dirAndName(rootLocation, path)
-						repoData := RepoData{BaseDir: archiveDir, FullName: archiveName, Url: gitHttpUrl, Type: "archive"}
+						repoData := RepoData{BaseDir: archiveDir, FullName: archiveName, Url: gitHttpUrl, Type: "archive", Alias: ""}
 						*paths = append(*paths, repoData)
 					}
 				}
@@ -198,7 +203,7 @@ func addParents(repos []RepoData, rootLocation, path string) []RepoData {
 	} else {
 		parentDir := filepath.Dir(path)
 		dir, name := dirAndName(rootLocation, parentDir)
-		repoData := RepoData{BaseDir: dir, FullName: name, Url: "-", Type: "dir"}
+		repoData := RepoData{BaseDir: dir, FullName: name, Url: "-", Type: "dir", Alias: ""}
 		repos = append(repos, repoData)
 		return addParents(repos, rootLocation, parentDir)
 	}
