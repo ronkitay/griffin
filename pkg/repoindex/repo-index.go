@@ -30,11 +30,11 @@ func (datum RepoData) ToString() string {
 	return filepath.Join(datum.BaseDir, datum.FullName)
 }
 
-func (datum RepoData) Matchable() string {
+func (datum RepoData) Matchable() []string {
 	if datum.Alias != "" {
-		return datum.FullName + " " + datum.Alias
+		return []string{datum.FullName, datum.Alias}
 	}
-	return datum.FullName
+	return []string{datum.FullName}
 }
 
 func converter(noArchives bool, noDirs bool) func(csvData []string) (RepoData, error) {

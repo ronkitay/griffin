@@ -24,15 +24,18 @@ func BuildPattern(args []string) *regexp.Regexp {
 }
 
 type Matchable interface {
-	Matchable() string
+	Matchable() []string
 }
 
 func MatchItems[T Matchable](elements []T, regexPattern *regexp.Regexp) []T {
 	var result []T
 
 	for _, element := range elements {
-		if regexPattern.MatchString(element.Matchable()) {
-			result = append(result, element)
+		for _, matchableValue := range element.Matchable() {
+			if regexPattern.MatchString(matchableValue) {
+				result = append(result, element)
+				break
+			}
 		}
 	}
 
