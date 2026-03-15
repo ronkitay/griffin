@@ -27,8 +27,8 @@ func (datum ProjectData) ToString() string {
 	return filepath.Join(datum.BaseDir, datum.FullName)
 }
 
-func (datum ProjectData) Matchable() string {
-	return filepath.Join(datum.BaseDir, datum.FullName)
+func (datum ProjectData) Matchable() []string {
+	return []string{datum.FullName, filepath.Join(datum.BaseDir, datum.FullName)}
 }
 
 func FromCsvRecord(data []string) (ProjectData, error) {
