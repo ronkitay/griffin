@@ -142,16 +142,9 @@ func visit(rootLocation string, paths *[]RepoData, processedRemotes map[string]s
 									continue
 								}
 
-								// Check if inside rootLocation
-								rel, err := filepath.Rel(rootLocation, wtPath)
-								if err == nil && !strings.HasPrefix(rel, "..") {
-									// Inside
-									wtDir, wtName := dirAndName(rootLocation, wtPath)
-									*paths = append(*paths, RepoData{BaseDir: wtDir, FullName: wtName, Url: gitHttpUrl, Type: repoType, Alias: repoName})
-								} else {
-									// Outside - use actual directory name with repo name as alias
-									*paths = append(*paths, RepoData{BaseDir: filepath.Dir(wtPath), FullName: filepath.Base(wtPath), Url: gitHttpUrl, Type: repoType, Alias: repoName})
-								}
+								// For worktrees, always use the full absolute path
+								// Store the parent directory as BaseDir and the worktree name as FullName
+								*paths = append(*paths, RepoData{BaseDir: filepath.Dir(wtPath), FullName: filepath.Base(wtPath), Url: gitHttpUrl, Type: repoType, Alias: repoName})
 							}
 						}
 					}

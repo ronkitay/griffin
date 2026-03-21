@@ -69,6 +69,137 @@ func TestLocateRepos_Worktrees(t *testing.T) {
 	}
 }
 
+func TestLocateRepos_Dev3Worktrees(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create a dev3-style structure with main repo at root
+	root := filepath.Join(tmpDir, "dev3-repos")
+	if err := os.MkdirAll(root, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	mainRepoDir := filepath.Join(root, "my-repo")
+	if err := os.MkdirAll(mainRepoDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	runGit(t, mainRepoDir, "init")
+	runGit(t, mainRepoDir, "config", "user.email", "test@test.com")
+	runGit(t, mainRepoDir, "config", "user.name", "Test")
+	runGit(t, mainRepoDir, "commit", "--allow-empty", "-m", "init")
+	runGit(t, mainRepoDir, "remote", "add", "origin", "git@github.com:user/repo.git")
+
+	// Create a dev3-style worktree directory structure:
+	// .dev3.0/worktrees/Users-ronk-code-personal-griffin/3c9a68c5/worktree
+	worktreesRoot := filepath.Join(tmpDir, "worktrees")
+	wtDir := filepath.Join(worktreesRoot, "Users-user-code-personal-repo", "hash123", "worktree")
+	if err := os.MkdirAll(wtDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a worktree at this location
+	runGit(t, mainRepoDir, "worktree", "add", "--detach", wtDir, "master")
+
+	// Scan the root directory
+	repos := locateRepos(root, make(map[string]struct{}))
+
+	// Find the main repo
+	var foundMain, foundWt bool
+	var wtFullName, wtBaseDir string
+
+	for _, r := range repos {
+		if r.FullName == "my-repo" && r.BaseDir == root {
+			foundMain = true
+		}
+		if r.FullName == "worktree" {
+			foundWt = true
+			wtFullName = r.FullName
+			wtBaseDir = r.BaseDir
+			// Verify the alias is set to the repo name
+			if r.Alias != "my-repo" {
+				t.Errorf("Worktree alias should be 'my-repo', got '%s'", r.Alias)
+			}
+		}
+	}
+
+	if !foundMain {
+		t.Errorf("Expected main repo to be found")
+	}
+	if !foundWt {
+		t.Errorf("Expected worktree to be found")
+		t.Logf("Found repos: %+v", repos)
+	} else {
+		// Verify that ToString() returns a valid path
+		expectedPath := filepath.Join(wtBaseDir, wtFullName)
+		expectedPathEval, _ := filepath.EvalSymlinks(expectedPath)
+		wtDirEval, _ := filepath.EvalSymlinks(wtDir)
+		
+		if expectedPathEval != wtDirEval {
+			t.Errorf("Worktree path mismatch. Expected %s, got %s", wtDirEval, expectedPathEval)
+		}
+		// Verify the path actually exists
+		if info, err := os.Stat(expectedPath); err != nil {
+			t.Errorf("Worktree path does not exist: %s, error: %v", expectedPath, err)
+		} else if !info.IsDir() {
+			t.Errorf("Worktree path is not a directory: %s", expectedPath)
+		}
+	}
+}
+
+func TestMatchingWorktrees(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	root := filepath.Join(tmpDir, "repos")
+	if err := os.MkdirAll(root, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	mainRepoDir := filepath.Join(root, "my-repo")
+	if err := os.MkdirAll(mainRepoDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	runGit(t, mainRepoDir, "init")
+	runGit(t, mainRepoDir, "config", "user.email", "test@test.com")
+	runGit(t, mainRepoDir, "config", "user.name", "Test")
+	runGit(t, mainRepoDir, "commit", "--allow-empty", "-m", "init")
+	runGit(t, mainRepoDir, "remote", "add", "origin", "git@github.com:user/repo.git")
+
+	wtDir := filepath.Join(tmpDir, "worktrees", "worktree-1")
+	if err := os.MkdirAll(wtDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, mainRepoDir, "worktree", "add", "--detach", wtDir, "master")
+
+	repos := locateRepos(root, make(map[string]struct{}))
+
+	// Test matching by FullName (directory name)
+	var foundByDirName bool
+	for _, r := range repos {
+		if r.FullName == "worktree-1" {
+			foundByDirName = true
+			// Check that we can match it
+			matchable := r.Matchable()
+			if len(matchable) == 0 {
+				t.Errorf("Matchable should not be empty")
+			}
+			var foundInMatchable bool
+			for _, m := range matchable {
+				if m == "worktree-1" {
+					foundInMatchable = true
+				}
+			}
+			if !foundInMatchable {
+				t.Errorf("Directory name 'worktree-1' should be in Matchable(), got: %v", matchable)
+			}
+		}
+	}
+
+	if !foundByDirName {
+		t.Errorf("Expected worktree with FullName 'worktree-1' to be found")
+	}
+}
+
 func TestGetWorktrees(t *testing.T) {
 	tmpDir := t.TempDir()
 	repoDir := filepath.Join(tmpDir, "repo")
