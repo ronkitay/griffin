@@ -10,6 +10,17 @@ import (
 	repo "ronkitay.com/griffin/pkg/repoindex"
 )
 
+func shortenPath(path string) string {
+	const maxLen = 53
+	const halfLen = 25
+	
+	if len(path) <= maxLen {
+		return path
+	}
+	
+	return path[:halfLen] + "..." + path[len(path)-halfLen:]
+}
+
 func ReposAsAlfred(matchingRepos []repo.RepoData) string {
 	var items []Item
 
@@ -51,7 +62,7 @@ func buildDirectoryLocation(repoDir string, repoName string) Item {
 		Valid:    true,
 		UID:      repoName,
 		Title:    repoName,
-		Subtitle: "Open in TERMINAL (🖥️) : " + repoDir,
+		Subtitle: "Open in TERMINAL (🖥️) : " + shortenPath(repoDir),
 		Arg:      repoDir,
 		Icon: Icon{
 			Path: "icons/dir.jpg",
@@ -64,7 +75,7 @@ func buildArchiveLocation(repoDir string, repoName string, url string) Item {
 		Valid:    true,
 		UID:      repoName,
 		Title:    repoName,
-		Subtitle: "Open in TERMINAL (🖥️) : " + repoDir,
+		Subtitle: "Open in TERMINAL (🖥️) : " + shortenPath(repoDir),
 		Arg:      repoDir,
 		Mods: map[string]Modifier{
 			"alt": {
@@ -80,11 +91,12 @@ func buildArchiveLocation(repoDir string, repoName string, url string) Item {
 }
 
 func buildGitRepoLocation(repoDir string, repoName string, url string, locationType string) Item {
+	shortenedPath := shortenPath(repoDir)
 	return Item{
 		Valid:    true,
 		UID:      repoName,
 		Title:    repoName,
-		Subtitle: "Open in TERMINAL (🖥️) : " + repoDir,
+		Subtitle: "Open in TERMINAL (🖥️) : " + shortenedPath,
 		Arg:      repoDir,
 		Mods: map[string]Modifier{
 			"alt": {
@@ -95,12 +107,12 @@ func buildGitRepoLocation(repoDir string, repoName string, url string, locationT
 			"ctrl": {
 				Valid:    true,
 				Arg:      repoDir,
-				Subtitle: "Open in EDITOR (📝): " + repoDir,
+				Subtitle: "Open in EDITOR (📝): " + shortenedPath,
 			},
 			"ctrl+shift": {
 				Valid:    true,
 				Arg:      repoDir,
-				Subtitle: "Open in ALTERNATIVE EDITOR (🛠️): " + repoDir,
+				Subtitle: "Open in ALTERNATIVE EDITOR (🛠️): " + shortenedPath,
 			},
 		},
 		Icon: Icon{
@@ -131,23 +143,24 @@ func ProjectsAsAlfred(matchingProjects []projectIndex.ProjectData) string {
 
 func buildAlfredItemForProject(project projectIndex.ProjectData) Item {
 	projectFullPath := filepath.Join(project.BaseDir, project.FullName)
+	shortenedPath := shortenPath(projectFullPath)
 
 	return Item{
 		Valid:    true,
 		UID:      project.FullName,
 		Title:    project.FullName,
-		Subtitle: "Open in TERMINAL (🖥️) : " + projectFullPath,
+		Subtitle: "Open in TERMINAL (🖥️) : " + shortenedPath,
 		Arg:      projectFullPath,
 		Mods: map[string]Modifier{
 			"ctrl": {
 				Valid:    true,
 				Arg:      projectFullPath,
-				Subtitle: "Open in EDITOR (📝): " + projectFullPath,
+				Subtitle: "Open in EDITOR (📝): " + shortenedPath,
 			},
 			"ctrl+shift": {
 				Valid:    true,
 				Arg:      projectFullPath,
-				Subtitle: "Open in ALTERNATIVE EDITOR (🛠️): " + projectFullPath,
+				Subtitle: "Open in ALTERNATIVE EDITOR (🛠️): " + shortenedPath,
 			},
 		},
 		Icon: Icon{
