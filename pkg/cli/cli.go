@@ -12,6 +12,7 @@ import (
 	"ronkitay.com/griffin/pkg/repoindex"
 	"ronkitay.com/griffin/pkg/shell"
 	"ronkitay.com/griffin/pkg/terminal"
+	"ronkitay.com/griffin/pkg/version"
 )
 
 type CommandHandler func(*Command, string)
@@ -44,6 +45,8 @@ func Run() {
 
 	if userRequestsHelp(commandName) {
 		printToolHelp(executableName)
+	} else if userRequestsVersion(commandName) {
+		printVersion()
 	} else {
 		command := matchCommand(commandName)
 		if command != nil {
@@ -57,6 +60,15 @@ func Run() {
 
 func userRequestsHelp(commandName string) bool {
 	return commandName == "-h" || commandName == "--help" || commandName == "help"
+}
+
+func userRequestsVersion(commandName string) bool {
+	return commandName == "-v" || commandName == "--version" || commandName == "version"
+}
+
+func printVersion() {
+	fmt.Printf("griffin version %s\n", version.Version)
+	os.Exit(0)
 }
 
 func printToolHelp(executableName string) {
