@@ -6,7 +6,7 @@ build:
 	goreleaser build --clean --snapshot --skip=post-hooks
 
 test: build
-	echo "Build complete - that is all the tests for now"
+	go test ./...
 
 release: test 
 	goreleaser release --clean 
