@@ -41,6 +41,7 @@ func TestLocateRepos_Worktrees(t *testing.T) {
 	foundRepo := false
 	foundWtInside := false
 	foundWtOutside := false
+	wtInsideCount := 0
 
 	for _, r := range repos {
 		if r.FullName == "my-repo" {
@@ -48,6 +49,7 @@ func TestLocateRepos_Worktrees(t *testing.T) {
 		}
 		if r.FullName == "wt-inside" {
 			foundWtInside = true
+			wtInsideCount++
 		}
 		if r.FullName == "my-repo" {
 			foundWtOutside = true
@@ -60,12 +62,68 @@ func TestLocateRepos_Worktrees(t *testing.T) {
 	if !foundWtInside {
 		t.Errorf("Expected inside worktree to be found")
 	}
+	if wtInsideCount > 1 {
+		t.Errorf("Expected worktree 'wt-inside' to appear only once, but found %d times", wtInsideCount)
+	}
 	if foundWtOutside {
 		// t.Errorf("Did not expect outside worktree to be found (yet)") // Old expectation
 	}
 
 	if !foundWtOutside {
 		t.Errorf("Expected outside worktree to be found")
+	}
+}
+
+func TestLocateRepos_WorktreeNoDuplication(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create a directory structure similar to the bug report
+	root := filepath.Join(tmpDir, "code/personal")
+	if err := os.MkdirAll(root, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create main repo
+	repoDir := filepath.Join(root, "griffin")
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	runGit(t, repoDir, "init")
+	runGit(t, repoDir, "config", "user.email", "test@test.com")
+	runGit(t, repoDir, "config", "user.name", "Test")
+	runGit(t, repoDir, "commit", "--allow-empty", "-m", "init")
+	runGit(t, repoDir, "remote", "add", "origin", "https://github.com/ronkitay/griffin")
+
+	// Create a worktree under the same configured directory (this is the bug scenario)
+	wtDir := filepath.Join(root, "griffin-test")
+	runGit(t, repoDir, "worktree", "add", "--detach", wtDir, "master")
+
+	// Locate repos starting from the configured root
+	repos := locateRepos(root, make(map[string]struct{}))
+
+	// Count how many times the worktree appears and check it has the alias
+	wtCount := 0
+	wtWithAlias := false
+	rootEval, _ := filepath.EvalSymlinks(root)
+
+	for _, r := range repos {
+		rBaseEval, _ := filepath.EvalSymlinks(r.BaseDir)
+		if rBaseEval == rootEval && r.FullName == "griffin-test" {
+			wtCount++
+			if r.Alias == "griffin" {
+				wtWithAlias = true
+			}
+		}
+	}
+
+	if wtCount != 1 {
+		t.Errorf("Expected worktree 'griffin-test' to appear exactly once, but found %d times", wtCount)
+		t.Logf("All repos: %+v", repos)
+	}
+	if !wtWithAlias {
+		t.Errorf("Expected worktree to have alias 'griffin'")
+		t.Logf("All repos: %+v", repos)
 	}
 }
 
@@ -106,9 +164,11 @@ func TestLocateRepos_Dev3Worktrees(t *testing.T) {
 	// Find the main repo
 	var foundMain, foundWt bool
 	var wtFullName, wtBaseDir string
+	rootEval, _ := filepath.EvalSymlinks(root)
 
 	for _, r := range repos {
-		if r.FullName == "my-repo" && r.BaseDir == root {
+		rBaseEval, _ := filepath.EvalSymlinks(r.BaseDir)
+		if r.FullName == "my-repo" && rBaseEval == rootEval {
 			foundMain = true
 		}
 		if r.FullName == "worktree" {
@@ -124,6 +184,7 @@ func TestLocateRepos_Dev3Worktrees(t *testing.T) {
 
 	if !foundMain {
 		t.Errorf("Expected main repo to be found")
+		t.Logf("Found repos: %+v", repos)
 	}
 	if !foundWt {
 		t.Errorf("Expected worktree to be found")

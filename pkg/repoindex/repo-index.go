@@ -180,12 +180,24 @@ func visit(rootLocation string, paths *[]RepoData, processedRemotes map[string]s
 }
 
 func deDuplicate(input []RepoData) []RepoData {
-	encountered := map[RepoData]bool{}
+	// Use a key of BaseDir + FullName to detect duplicates
+	// Prefer entries with aliases (worktrees) over entries without
+	encountered := make(map[string]int) // maps key to index in result
 	result := []RepoData{}
 
-	for _, v := range input {
-		if !encountered[v] {
-			encountered[v] = true
+	for i, v := range input {
+		// Use absolute path after evaluating symlinks to normalize paths
+		absBase, _ := filepath.EvalSymlinks(v.BaseDir)
+		key := filepath.Join(absBase, v.FullName)
+
+		if existingIdx, found := encountered[key]; found {
+			// If the new entry has an alias and the existing one doesn't,
+			// replace the existing one (prefer worktree version)
+			if v.Alias != "" && result[existingIdx].Alias == "" {
+				result[existingIdx] = input[i]
+			}
+		} else {
+			encountered[key] = len(result)
 			result = append(result, v)
 		}
 	}
