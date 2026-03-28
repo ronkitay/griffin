@@ -55,7 +55,30 @@ func BuildProjectIndex() {
 		scanRepoForProjects(repoRoot, &projects)
 	}
 
+	projects = deDuplicateProjects(projects)
+
 	csvHelper.SaveIndex(config.LoadConfiguration().ProjectListLocation, projects)
+}
+
+func deDuplicateProjects(input []ProjectData) []ProjectData {
+	encountered := make(map[string]struct{})
+	result := []ProjectData{}
+
+	for _, v := range input {
+		fullPath := filepath.Join(v.BaseDir, v.FullName)
+		absPath, err := filepath.EvalSymlinks(fullPath)
+		if err != nil {
+			absPath = filepath.Clean(fullPath)
+		}
+		key := absPath
+
+		if _, found := encountered[key]; !found {
+			encountered[key] = struct{}{}
+			result = append(result, v)
+		}
+	}
+
+	return result
 }
 
 func scanRepoForProjects(rootLocation string, projects *[]ProjectData) {
@@ -134,9 +157,11 @@ func matchedProgrammingLanguage(path string) (string, error) {
 }
 
 func dirAndName(rootLocation string, path string) (string, string) {
+	rootLocation = filepath.Clean(rootLocation)
+	path = filepath.Clean(path)
 	if path == rootLocation {
 		return filepath.Dir(path), filepath.Base(path)
 	} else {
-		return rootLocation, strings.Replace(path, rootLocation+"/", "", -1)
+		return rootLocation, strings.TrimPrefix(strings.TrimPrefix(path, rootLocation), string(filepath.Separator))
 	}
 }

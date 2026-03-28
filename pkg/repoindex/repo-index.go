@@ -91,6 +91,8 @@ func BuildRepoIndex() error {
 		repos = append(repos, reposFromRoot...)
 	}
 
+	repos = deDuplicate(repos)
+
 	if err := csvHelper.SaveIndex(configuration.RepoListLocation, repos); err != nil {
 		return fmt.Errorf("error saving repo index: %v", err)
 	}
@@ -180,21 +182,26 @@ func visit(rootLocation string, paths *[]RepoData, processedRemotes map[string]s
 }
 
 func deDuplicate(input []RepoData) []RepoData {
-	// Use a key of BaseDir + FullName to detect duplicates
+	// Use a key of the full absolute path after evaluating symlinks to detect duplicates
 	// Prefer entries with aliases (worktrees) over entries without
 	encountered := make(map[string]int) // maps key to index in result
 	result := []RepoData{}
 
-	for i, v := range input {
+	for _, v := range input {
 		// Use absolute path after evaluating symlinks to normalize paths
-		absBase, _ := filepath.EvalSymlinks(v.BaseDir)
-		key := filepath.Join(absBase, v.FullName)
+		fullPath := filepath.Join(v.BaseDir, v.FullName)
+		absPath, err := filepath.EvalSymlinks(fullPath)
+		if err != nil {
+			absPath = filepath.Clean(fullPath)
+		}
+		key := absPath
 
 		if existingIdx, found := encountered[key]; found {
-			// If the new entry has an alias and the existing one doesn't,
-			// replace the existing one (prefer worktree version)
-			if v.Alias != "" && result[existingIdx].Alias == "" {
-				result[existingIdx] = input[i]
+			existing := result[existingIdx]
+			// Prefer entries with aliases (worktrees) over entries without.
+			// Also prefer real repositories over plain directories.
+			if (v.Alias != "" && existing.Alias == "") || (v.Type != "dir" && existing.Type == "dir") {
+				result[existingIdx] = v
 			}
 		} else {
 			encountered[key] = len(result)
@@ -218,10 +225,12 @@ func addParents(repos []RepoData, rootLocation, path string) []RepoData {
 }
 
 func dirAndName(rootLocation string, path string) (string, string) {
+	rootLocation = filepath.Clean(rootLocation)
+	path = filepath.Clean(path)
 	if path == rootLocation {
 		return filepath.Dir(path), filepath.Base(path)
 	} else {
-		return rootLocation, strings.Replace(path, rootLocation+"/", "", -1)
+		return rootLocation, strings.TrimPrefix(strings.TrimPrefix(path, rootLocation), string(filepath.Separator))
 	}
 }
 
