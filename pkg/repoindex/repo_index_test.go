@@ -313,6 +313,52 @@ func TestGetWorktrees(t *testing.T) {
 	}
 }
 
+func TestLocateRepos_SymlinkedDuplicate(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	realDir := filepath.Join(tmpDir, "real")
+	if err := os.MkdirAll(realDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	repoDir := filepath.Join(realDir, "repo")
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	runGit(t, repoDir, "init")
+	runGit(t, repoDir, "config", "user.email", "test@test.com")
+	runGit(t, repoDir, "config", "user.name", "Test")
+	runGit(t, repoDir, "commit", "--allow-empty", "-m", "init")
+	runGit(t, repoDir, "remote", "add", "origin", "https://github.com/ronkitay/griffin")
+
+	symDir := filepath.Join(tmpDir, "sym")
+	if err := os.Symlink(realDir, symDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Scan both real and symlinked directories
+	repos := locateRepos(realDir, make(map[string]struct{}))
+	repos = append(repos, locateRepos(symDir, make(map[string]struct{}))...)
+
+	// Deduplicate them as BuildRepoIndex would do
+	repos = deDuplicate(repos)
+
+	repoCount := 0
+	for _, r := range repos {
+		if r.FullName == "repo" {
+			repoCount++
+		}
+	}
+
+	if repoCount != 1 {
+		t.Errorf("Expected repo to appear exactly once, but found %d times", repoCount)
+		for _, r := range repos {
+			t.Logf("Repo: %+v", r)
+		}
+	}
+}
+
 func runGit(t *testing.T, dir string, args ...string) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir
