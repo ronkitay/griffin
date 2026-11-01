@@ -123,9 +123,29 @@ func visit(rootLocation string, paths *[]RepoData, processedRemotes map[string]s
 		if info.IsDir() {
 			// Check if the directory contains a .git directory
 			gitPath := filepath.Join(path, ".git")
-			_, err := os.Stat(gitPath)
+			gitInfo, err := os.Stat(gitPath)
 			if err == nil {
 				repoDir, repoName := dirAndName(rootLocation, path)
+				alias := repoName
+				if !gitInfo.IsDir() {
+					if mainDir := getMainRepoDir(path); mainDir != "" {
+						rootEval, err := filepath.EvalSymlinks(rootLocation)
+						if err != nil {
+							rootEval = filepath.Clean(rootLocation)
+						}
+						mainEval, err := filepath.EvalSymlinks(mainDir)
+						if err != nil {
+							mainEval = filepath.Clean(mainDir)
+						}
+						if strings.HasPrefix(mainEval, rootEval+string(filepath.Separator)) {
+							if _, mainName := dirAndName(rootEval, mainEval); mainName != "" {
+								alias = mainName
+							}
+						} else {
+							alias = filepath.Base(mainEval)
+						}
+					}
+				}
 				remoteURL, err := getGitRemote(path)
 				if err != nil {
 					fmt.Println("Error:", err)
@@ -133,6 +153,9 @@ func visit(rootLocation string, paths *[]RepoData, processedRemotes map[string]s
 					gitHttpUrl := gitURLToHTTP(remoteURL)
 					repoType := repoType(gitHttpUrl)
 					repoData := RepoData{BaseDir: repoDir, FullName: repoName, Url: gitHttpUrl, Type: repoType}
+					if !gitInfo.IsDir() {
+						repoData = RepoData{BaseDir: filepath.Dir(path), FullName: filepath.Base(path), Url: gitHttpUrl, Type: repoType, Alias: alias}
+					}
 					*paths = append(*paths, repoData)
 
 					if _, ok := processedRemotes[remoteURL]; !ok {
@@ -146,7 +169,7 @@ func visit(rootLocation string, paths *[]RepoData, processedRemotes map[string]s
 
 								// For worktrees, always use the full absolute path
 								// Store the parent directory as BaseDir and the worktree name as FullName
-								*paths = append(*paths, RepoData{BaseDir: filepath.Dir(wtPath), FullName: filepath.Base(wtPath), Url: gitHttpUrl, Type: repoType, Alias: repoName})
+								*paths = append(*paths, RepoData{BaseDir: filepath.Dir(wtPath), FullName: filepath.Base(wtPath), Url: gitHttpUrl, Type: repoType, Alias: alias})
 							}
 						}
 					}
@@ -252,6 +275,22 @@ func gitURLToHTTP(url string) string {
 	url = GIT_URL_REGEX.ReplaceAllString(url, "https://${1}/")
 	url = strings.TrimSuffix(url, ".git")
 	return url
+}
+
+func getMainRepoDir(path string) string {
+	cmd := exec.Command("git", "rev-parse", "--git-common-dir")
+	cmd.Dir = path
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return ""
+	}
+
+	commonDir := strings.TrimSpace(string(output))
+	if !filepath.IsAbs(commonDir) {
+		commonDir = filepath.Join(path, commonDir)
+	}
+	return filepath.Dir(commonDir)
 }
 
 func getWorktrees(dir string) ([]string, error) {

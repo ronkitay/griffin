@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -27,14 +28,14 @@ func TestLocateRepos_Worktrees(t *testing.T) {
 	runGit(t, repoDir, "remote", "add", "origin", "git@github.com:user/repo.git")
 
 	wtInside := filepath.Join(root1, "wt-inside")
-	runGit(t, repoDir, "worktree", "add", "--detach", wtInside, "master")
+	runGit(t, repoDir, "worktree", "add", "--detach", wtInside, "HEAD")
 
 	root2 := filepath.Join(tmpDir, "root2")
 	if err := os.MkdirAll(root2, 0755); err != nil {
 		t.Fatal(err)
 	}
 	wtOutside := filepath.Join(root2, "wt-outside")
-	runGit(t, repoDir, "worktree", "add", "--detach", wtOutside, "master")
+	runGit(t, repoDir, "worktree", "add", "--detach", wtOutside, "HEAD")
 
 	repos := locateRepos(root1, make(map[string]struct{}))
 
@@ -97,7 +98,7 @@ func TestLocateRepos_WorktreeNoDuplication(t *testing.T) {
 
 	// Create a worktree under the same configured directory (this is the bug scenario)
 	wtDir := filepath.Join(root, "griffin-test")
-	runGit(t, repoDir, "worktree", "add", "--detach", wtDir, "master")
+	runGit(t, repoDir, "worktree", "add", "--detach", wtDir, "HEAD")
 
 	// Locate repos starting from the configured root
 	repos := locateRepos(root, make(map[string]struct{}))
@@ -156,7 +157,7 @@ func TestLocateRepos_Dev3Worktrees(t *testing.T) {
 	}
 
 	// Create a worktree at this location
-	runGit(t, mainRepoDir, "worktree", "add", "--detach", wtDir, "master")
+	runGit(t, mainRepoDir, "worktree", "add", "--detach", wtDir, "HEAD")
 
 	// Scan the root directory
 	repos := locateRepos(root, make(map[string]struct{}))
@@ -230,7 +231,7 @@ func TestMatchingWorktrees(t *testing.T) {
 	if err := os.MkdirAll(wtDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	runGit(t, mainRepoDir, "worktree", "add", "--detach", wtDir, "master")
+	runGit(t, mainRepoDir, "worktree", "add", "--detach", wtDir, "HEAD")
 
 	repos := locateRepos(root, make(map[string]struct{}))
 
@@ -272,7 +273,7 @@ func TestGetWorktrees(t *testing.T) {
 	runGit(t, repoDir, "commit", "--allow-empty", "-m", "init")
 
 	wt1 := filepath.Join(tmpDir, "wt1")
-	runGit(t, repoDir, "worktree", "add", "--detach", wt1, "master")
+	runGit(t, repoDir, "worktree", "add", "--detach", wt1, "HEAD")
 
 	wts, err := getWorktrees(repoDir)
 	if err != nil {
@@ -310,6 +311,89 @@ func TestGetWorktrees(t *testing.T) {
 	}
 	if !foundWt1 {
 		t.Errorf("Added worktree not found in list: %v", wts)
+	}
+}
+
+func TestLocateRepos_WorktreeAliasFromMainRepo(t *testing.T) {
+	tmpDir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	root := filepath.Join(tmpDir, "code/personal")
+	if err := os.MkdirAll(root, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	repoDir := filepath.Join(root, "personal-assistant")
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	runGit(t, repoDir, "init")
+	runGit(t, repoDir, "config", "user.email", "test@test.com")
+	runGit(t, repoDir, "config", "user.name", "Test")
+	runGit(t, repoDir, "commit", "--allow-empty", "-m", "init")
+	runGit(t, repoDir, "remote", "add", "origin", "https://github.com/ronkitay/personal-assistant")
+
+	wtDir := filepath.Join(root, ".worktrees", "personal-assistant--griffin-wt-fix")
+	if err := os.MkdirAll(wtDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, repoDir, "worktree", "add", "--detach", wtDir, "HEAD")
+
+	wtRoot := filepath.Join(tmpDir, "workmux/worktrees")
+	if err := os.MkdirAll(wtRoot, 0755); err != nil {
+		t.Fatal(err)
+	}
+	crossWtDir := filepath.Join(wtRoot, "anniversary-planning")
+	runGit(t, repoDir, "worktree", "add", "--detach", crossWtDir, "HEAD")
+
+	processed := make(map[string]struct{})
+	repos := locateRepos(wtRoot, processed)
+	repos = append(repos, locateRepos(root, processed)...)
+	repos = deDuplicate(repos)
+
+	mainAlias := ""
+	wtAlias := ""
+	crossWtAlias := ""
+	polluted := false
+	wtFound := false
+	for _, r := range repos {
+		if r.FullName == "personal-assistant--griffin-wt-fix" {
+			wtFound = true
+			wtAlias = r.Alias
+		}
+		if r.FullName == "anniversary-planning" {
+			crossWtAlias = r.Alias
+		}
+		if r.FullName == "personal-assistant" {
+			mainAlias = r.Alias
+		}
+		if strings.Contains(r.Alias, ".worktrees/") || strings.Contains(r.Alias, "griffin-wt-fix") || strings.Contains(r.Alias, "/") {
+			polluted = true
+		}
+	}
+
+	if !wtFound {
+		t.Errorf("Expected linked worktree to be found by its path name")
+		t.Logf("All repos: %+v", repos)
+	}
+	if polluted {
+		t.Errorf("Found polluted alias on an entry")
+		t.Logf("All repos: %+v", repos)
+	}
+	if wtAlias != "personal-assistant" {
+		t.Errorf("Expected linked worktree alias to be 'personal-assistant', got '%s'", wtAlias)
+		t.Logf("All repos: %+v", repos)
+	}
+	if crossWtAlias != "personal-assistant" {
+		t.Errorf("Expected cross-root worktree alias to be 'personal-assistant', got '%s'", crossWtAlias)
+		t.Logf("All repos: %+v", repos)
+	}
+	if mainAlias != "personal-assistant" {
+		t.Errorf("Expected main repo alias to be 'personal-assistant', got '%s'", mainAlias)
+		t.Logf("All repos: %+v", repos)
 	}
 }
 
