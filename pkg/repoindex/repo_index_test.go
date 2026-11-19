@@ -1,6 +1,8 @@
 package repoindex
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -441,6 +443,104 @@ func TestLocateRepos_SymlinkedDuplicate(t *testing.T) {
 			t.Logf("Repo: %+v", r)
 		}
 	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func TestRepoTypeDetection(t *testing.T) {
+	t.Run("local filesystem markers favor github over gitlab", func(t *testing.T) {
+		dirBoth := t.TempDir()
+		if err := os.MkdirAll(filepath.Join(dirBoth, ".github"), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dirBoth, ".gitlab-ci.yml"), []byte("stages: []"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		if got := repoType("https://git.corp.local/team/repo", dirBoth); got != "github" {
+			t.Errorf("expected github when both indicators exist, got %s", got)
+		}
+
+		dirGitlabFile := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dirGitlabFile, ".gitlab-ci.yml"), []byte("stages: []"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		if got := repoType("https://git.corp.local/team/repo", dirGitlabFile); got != "gitlab" {
+			t.Errorf("expected gitlab for .gitlab-ci.yml, got %s", got)
+		}
+
+		dirGitlabDir := t.TempDir()
+		if err := os.MkdirAll(filepath.Join(dirGitlabDir, ".gitlab"), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if got := repoType("https://git.corp.local/team/repo", dirGitlabDir); got != "gitlab" {
+			t.Errorf("expected gitlab for .gitlab dir, got %s", got)
+		}
+	})
+
+	t.Run("http header probe detects github and gitlab and caches result", func(t *testing.T) {
+		emptyDir := t.TempDir()
+		origTransport := probeHTTPClient.Transport
+		defer func() {
+			probeHTTPClient.Transport = origTransport
+			hostTypeCache = make(map[string]string)
+		}()
+
+		hostTypeCache = make(map[string]string)
+		hitCounts := make(map[string]int)
+
+		probeHTTPClient.Transport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			hitCounts[req.URL.Host]++
+			rec := httptest.NewRecorder()
+			switch req.URL.Host {
+			case "ghe.corp.local":
+				rec.Header().Set("X-GitHub-Request-Id", "CC17:24623C:DD029:169ABA:6AFF42CF")
+			case "gl.corp.local":
+				rec.Header().Set("X-Gitlab-Meta", `{"correlation_id":"abc","version":"1"}`)
+			case "both.corp.local":
+				rec.Header().Set("X-GitHub-Request-Id", "12345")
+				rec.Header().Set("X-Gitlab-Meta", `{"version":"1"}`)
+			}
+			rec.WriteHeader(http.StatusOK)
+			return rec.Result(), nil
+		})
+
+		if got := repoType("https://ghe.corp.local/team/repo1", emptyDir); got != "github" {
+			t.Errorf("expected github from X-GitHub-Request-Id header, got %s", got)
+		}
+		if got := repoType("https://ghe.corp.local/team/repo2", emptyDir); got != "github" {
+			t.Errorf("expected cached github, got %s", got)
+		}
+		if hitCounts["ghe.corp.local"] != 1 {
+			t.Errorf("expected ghe.corp.local to be probed once, got %d", hitCounts["ghe.corp.local"])
+		}
+
+		if got := repoType("https://gl.corp.local/team/repo", emptyDir); got != "gitlab" {
+			t.Errorf("expected gitlab from X-Gitlab-Meta header, got %s", got)
+		}
+
+		if got := repoType("https://both.corp.local/team/repo", emptyDir); got != "github" {
+			t.Errorf("expected github when both headers present, got %s", got)
+		}
+
+		if got := repoType("https://gitea.corp.local/team/repo", emptyDir); got != "git" {
+			t.Errorf("expected git fallback for generic server, got %s", got)
+		}
+	})
+
+	t.Run("converter accepts git type", func(t *testing.T) {
+		conv := converter(false, false)
+		data, err := conv([]string{"/base", "my-repo", "https://git.corp.local/team/my-repo", "git", "my-repo"})
+		if err != nil {
+			t.Fatalf("expected converter to accept git type, got error: %v", err)
+		}
+		if data.Type != "git" {
+			t.Errorf("expected data.Type to be git, got %s", data.Type)
+		}
+	})
 }
 
 func runGit(t *testing.T, dir string, args ...string) {
