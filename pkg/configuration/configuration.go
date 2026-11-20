@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"ronkitay.com/griffin/pkg/terminal"
@@ -30,6 +31,7 @@ type IdeConfiguration struct {
 type UserConfiguration struct {
 	RepoRoots        []string         `json:"repoRoots"`
 	IdeConfiguration IdeConfiguration `json:"ideConfiguration"`
+	DisableHttpProbe bool             `json:"disableHttpProbe,omitempty"`
 }
 
 type Configuration struct {
@@ -182,6 +184,10 @@ func (cm *ConfigurationManager) SetRustIDEAlternative(ide string) {
 	cm.config.IdeConfiguration.RustAlternative = ide
 }
 
+func (cm *ConfigurationManager) SetDisableHttpProbe(disable bool) {
+	cm.config.DisableHttpProbe = disable
+}
+
 func (cm *ConfigurationManager) Save() error {
 	data, err := json.MarshalIndent(cm.config, "", "    ")
 	if err != nil {
@@ -253,6 +259,7 @@ func RegisterFlags() {
 	flag.String("python-ide-alt", "", "Set Python IDE alternative")
 	flag.String("node-ide-alt", "", "Set NodeJS IDE alternative")
 	flag.String("rust-ide-alt", "", "Set Rust IDE alternative")
+	flag.String("disable-http-probe", "", "Disable HTTP header probing when indexing repos (true/false)")
 }
 
 func HandleConfiguration() error {
@@ -275,6 +282,7 @@ func HandleConfiguration() error {
 	pythonIDEAlt := flag.Lookup("python-ide-alt").Value.String()
 	nodeIDEAlt := flag.Lookup("node-ide-alt").Value.String()
 	rustIDEAlt := flag.Lookup("rust-ide-alt").Value.String()
+	disableHttpProbe := flag.Lookup("disable-http-probe").Value.String()
 
 	configManager, err := NewConfigurationManager()
 	if err != nil {
@@ -346,6 +354,14 @@ func HandleConfiguration() error {
 		configManager.SetRustIDEAlternative(rustIDEAlt)
 		changesMade = true
 	}
+	if disableHttpProbe != "" {
+		parsedDisable, err := strconv.ParseBool(disableHttpProbe)
+		if err != nil {
+			return fmt.Errorf("invalid value for disable-http-probe (expected true or false): %v", err)
+		}
+		configManager.SetDisableHttpProbe(parsedDisable)
+		changesMade = true
+	}
 
 	// Save if any changes were made
 	if changesMade {
@@ -369,6 +385,9 @@ func HandleConfiguration() error {
 	if config.IdeConfiguration.Python != "" { fmt.Printf("    Python IDE: %s\n", config.IdeConfiguration.Python) }
 	if config.IdeConfiguration.NodeJS != "" { fmt.Printf("    NodeJS IDE: %s\n", config.IdeConfiguration.NodeJS) }
 	if config.IdeConfiguration.Rust != "" { fmt.Printf("    Rust IDE: %s\n", config.IdeConfiguration.Rust) }
+	if config.DisableHttpProbe {
+		fmt.Printf("  " + terminal.GREEN_COLOR + "Disable HTTP Probe:" + terminal.RESET_COLORS + " true\n")
+	}
 
 	return nil
 }

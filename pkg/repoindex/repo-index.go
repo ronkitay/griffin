@@ -77,11 +77,16 @@ func LoadIndex(noArchives bool, noDirs bool) []RepoData {
 	return csvHelper.LoadIndex[RepoData](config.LoadConfiguration().RepoListLocation, converter(noArchives, noDirs))
 }
 
-func BuildRepoIndex() error {
+func BuildRepoIndex(noHttpProbe ...bool) error {
 	configuration := config.LoadConfiguration()
 	configManager, err := config.NewConfigurationManager()
 	if err != nil {
 		return fmt.Errorf("error initializing configuration: %v", err)
+	}
+
+	httpProbeDisabled = configuration.UserConfiguration.DisableHttpProbe
+	if len(noHttpProbe) > 0 && noHttpProbe[0] {
+		httpProbeDisabled = true
 	}
 
 	roots, err := configManager.GetRepoRoots()
@@ -274,10 +279,16 @@ func getGitRemote(dir string) (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
-var GIT_URL_REGEX = regexp.MustCompile(`git@([a-zA-Z0-9.-]+):`)
+var GIT_URL_REGEX = regexp.MustCompile(`^[a-zA-Z0-9._-]+@([a-zA-Z0-9.-]+):`)
 
 func gitURLToHTTP(url string) string {
-	url = GIT_URL_REGEX.ReplaceAllString(url, "https://${1}/")
+	if strings.HasPrefix(url, "ssh://") {
+		if parsed, err := neturl.Parse(url); err == nil && parsed.Hostname() != "" {
+			url = "https://" + parsed.Hostname() + parsed.Path
+		}
+	} else {
+		url = GIT_URL_REGEX.ReplaceAllString(url, "https://${1}/")
+	}
 	url = strings.TrimSuffix(url, ".git")
 	return url
 }
@@ -320,6 +331,8 @@ func getWorktrees(dir string) ([]string, error) {
 }
 
 var hostTypeCache = make(map[string]string)
+
+var httpProbeDisabled bool
 
 var probeHTTPClient = &http.Client{
 	Timeout: 2 * time.Second,
@@ -382,11 +395,13 @@ func repoType(url string, repoPath string) string {
 	if strings.Contains(url, "gitlab") {
 		return "gitlab"
 	}
+	if !httpProbeDisabled {
+		if httpType := detectRepoTypeFromHTTP(url); httpType != "" {
+			return httpType
+		}
+	}
 	if fsType := detectRepoTypeFromFS(repoPath); fsType != "" {
 		return fsType
-	}
-	if httpType := detectRepoTypeFromHTTP(url); httpType != "" {
-		return httpType
 	}
 	return "git"
 }

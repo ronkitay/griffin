@@ -120,7 +120,21 @@ func runFindRepoCommand(command *Command, executableName string) {
 }
 
 func runBuildRepoIndexCommand(command *Command, executableName string) {
-	if err := repoindex.BuildRepoIndex(); err != nil {
+	var showHelp bool
+	flag.BoolVar(&showHelp, "h", false, "Show Help")
+	flag.BoolVar(&showHelp, "help", false, "Show Help")
+
+	var noHttpProbe bool
+	flag.BoolVar(&noHttpProbe, "no-http-probe", false, "Disable HTTP header probing for unknown git hosts")
+
+	flag.CommandLine.Parse(os.Args[2:])
+
+	if showHelp {
+		printCommandHelp(executableName, command.name, false)
+		return
+	}
+
+	if err := repoindex.BuildRepoIndex(noHttpProbe); err != nil {
 		fmt.Printf("Error building repo index: %v\n", err)
 		return
 	}
