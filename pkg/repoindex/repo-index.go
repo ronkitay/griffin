@@ -4,11 +4,14 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"net/http"
+	neturl "net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	config "ronkitay.com/griffin/pkg/configuration"
 	csvHelper "ronkitay.com/griffin/pkg/csv"
@@ -60,6 +63,8 @@ func converter(noArchives bool, noDirs bool) func(csvData []string) (RepoData, e
 		case "gitlab":
 			fallthrough
 		case "github":
+			fallthrough
+		case "git":
 			return RepoData{BaseDir: parentDir, FullName: repoName, Url: url, Type: locationType, Alias: alias}, nil
 		}
 
@@ -72,11 +77,16 @@ func LoadIndex(noArchives bool, noDirs bool) []RepoData {
 	return csvHelper.LoadIndex[RepoData](config.LoadConfiguration().RepoListLocation, converter(noArchives, noDirs))
 }
 
-func BuildRepoIndex() error {
+func BuildRepoIndex(noHttpProbe ...bool) error {
 	configuration := config.LoadConfiguration()
 	configManager, err := config.NewConfigurationManager()
 	if err != nil {
 		return fmt.Errorf("error initializing configuration: %v", err)
+	}
+
+	httpProbeDisabled = configuration.UserConfiguration.DisableHttpProbe
+	if len(noHttpProbe) > 0 && noHttpProbe[0] {
+		httpProbeDisabled = true
 	}
 
 	roots, err := configManager.GetRepoRoots()
@@ -151,7 +161,7 @@ func visit(rootLocation string, paths *[]RepoData, processedRemotes map[string]s
 					fmt.Println("Error:", err)
 				} else {
 					gitHttpUrl := gitURLToHTTP(remoteURL)
-					repoType := repoType(gitHttpUrl)
+					repoType := repoType(gitHttpUrl, path)
 					repoData := RepoData{BaseDir: repoDir, FullName: repoName, Url: gitHttpUrl, Type: repoType}
 					if !gitInfo.IsDir() {
 						repoData = RepoData{BaseDir: filepath.Dir(path), FullName: filepath.Base(path), Url: gitHttpUrl, Type: repoType, Alias: alias}
@@ -269,10 +279,16 @@ func getGitRemote(dir string) (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
-var GIT_URL_REGEX = regexp.MustCompile(`git@([a-zA-Z0-9.-]+):`)
+var GIT_URL_REGEX = regexp.MustCompile(`^[a-zA-Z0-9._-]+@([a-zA-Z0-9.-]+):`)
 
 func gitURLToHTTP(url string) string {
-	url = GIT_URL_REGEX.ReplaceAllString(url, "https://${1}/")
+	if strings.HasPrefix(url, "ssh://") {
+		if parsed, err := neturl.Parse(url); err == nil && parsed.Hostname() != "" {
+			url = "https://" + parsed.Hostname() + parsed.Path
+		}
+	} else {
+		url = GIT_URL_REGEX.ReplaceAllString(url, "https://${1}/")
+	}
 	url = strings.TrimSuffix(url, ".git")
 	return url
 }
@@ -314,12 +330,78 @@ func getWorktrees(dir string) ([]string, error) {
 	return worktrees, nil
 }
 
-func repoType(url string) string {
+var hostTypeCache = make(map[string]string)
+
+var httpProbeDisabled bool
+
+var probeHTTPClient = &http.Client{
+	Timeout: 2 * time.Second,
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	},
+}
+
+func pathExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func detectRepoTypeFromFS(repoPath string) string {
+	if repoPath == "" {
+		return ""
+	}
+	if pathExists(filepath.Join(repoPath, ".github")) {
+		return "github"
+	}
+	if pathExists(filepath.Join(repoPath, ".gitlab-ci.yml")) || pathExists(filepath.Join(repoPath, ".gitlab")) {
+		return "gitlab"
+	}
+	return ""
+}
+
+func detectRepoTypeFromHTTP(url string) string {
+	parsed, err := neturl.Parse(url)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+		return ""
+	}
+
+	hostOrigin := parsed.Scheme + "://" + parsed.Host
+	if cached, found := hostTypeCache[hostOrigin]; found {
+		return cached
+	}
+
+	resp, err := probeHTTPClient.Head(hostOrigin)
+	if err != nil {
+		hostTypeCache[hostOrigin] = ""
+		return ""
+	}
+	defer resp.Body.Close()
+
+	detected := ""
+	if resp.Header.Get("X-GitHub-Request-Id") != "" || strings.EqualFold(resp.Header.Get("Server"), "github.com") {
+		detected = "github"
+	} else if resp.Header.Get("X-Gitlab-Meta") != "" {
+		detected = "gitlab"
+	}
+
+	hostTypeCache[hostOrigin] = detected
+	return detected
+}
+
+func repoType(url string, repoPath string) string {
 	if strings.Contains(url, "github") {
 		return "github"
 	}
 	if strings.Contains(url, "gitlab") {
 		return "gitlab"
 	}
-	return "unknown"
+	if !httpProbeDisabled {
+		if httpType := detectRepoTypeFromHTTP(url); httpType != "" {
+			return httpType
+		}
+	}
+	if fsType := detectRepoTypeFromFS(repoPath); fsType != "" {
+		return fsType
+	}
+	return "git"
 }

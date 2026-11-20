@@ -51,6 +51,8 @@ func buildAlfredItemForRepo(repo repo.RepoData) Item {
 	case "gitlab":
 		fallthrough
 	case "github":
+		fallthrough
+	case "git":
 		return buildGitRepoLocation(repoFullPath, repo.FullName, repo.Url, repo.Type)
 	default:
 		panic("Unsupported locationType: " + repo.Type)

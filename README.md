@@ -42,15 +42,28 @@ Example:
         "python": "PyCharm CE.app",
         "node": "WebStorm.app",
         "rust": "RustRover.app"
-    }
+    },
+    "disableHttpProbe": false
 }
 ```
 
 ### Building a Repository Index
 
 ```bash
-griffin build-repo-index
+griffin build-repo-index [--no-http-probe]
 ```
+
+#### Self-Hosted Git Repository Detection
+
+When indexing repositories whose remote host domain does not contain `github` or `gitlab`, Griffin determines the repository type in the following order:
+
+1. **HTTP Host Probe (cached once per domain):** Sends an unauthenticated `HEAD` request (with a 2-second timeout and no redirects) to the remote host origin and checks for GitHub (`X-GitHub-Request-Id` / `Server: github.com`) or GitLab (`X-Gitlab-Meta`) headers.
+2. **Local Filesystem Fallback:** If the host is unreachable (or HTTP probing is disabled), checks the repository root for `.github` (`github`) or `.gitlab-ci.yml` / `.gitlab` (`gitlab`).
+3. **Generic Git Fallback:** Defaults to `git` if neither matches.
+
+To disable outbound HTTP probing during indexing:
+- Pass `--no-http-probe` for a single run: `griffin build-repo-index --no-http-probe`
+- Or persist it in `~/.config/griffin/config.json`: `griffin configure --disable-http-probe=true`
 
 ### Searching for Repos
 

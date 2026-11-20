@@ -1,11 +1,15 @@
 package repoindex
 
 import (
+	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLocateRepos_Worktrees(t *testing.T) {
@@ -441,6 +445,273 @@ func TestLocateRepos_SymlinkedDuplicate(t *testing.T) {
 			t.Logf("Repo: %+v", r)
 		}
 	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func TestGitURLToHTTP_Scenarios(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"1_scp_github", "git@github.com:org/repo.git", "https://github.com/org/repo"},
+		{"2_scp_gitlab_subgroups", "git@gitlab.acme.com:group/sub/repo.git", "https://gitlab.acme.com/group/sub/repo"},
+		{"3_ssh_scheme_git_user", "ssh://git@git.acme.com/team/repo.git", "https://git.acme.com/team/repo"},
+		{"4_ssh_scheme_with_port", "ssh://git@git.acme.com:2222/team/repo.git", "https://git.acme.com/team/repo"},
+		{"5_ssh_scheme_no_dot_git", "ssh://git@git.acme.com/team/repo", "https://git.acme.com/team/repo"},
+		{"6_https_with_dot_git", "https://git.acme.com/team/repo.git", "https://git.acme.com/team/repo"},
+		{"7_http_with_web_port", "http://git.acme.com:8080/team/repo.git", "http://git.acme.com:8080/team/repo"},
+		{"8_local_path", "/srv/git/repo.git", "/srv/git/repo"},
+		{"9_file_scheme", "file:///srv/git/repo.git", "file:///srv/git/repo"},
+		{"10_ssh_scheme_no_user", "ssh://git.acme.com/team/repo.git", "https://git.acme.com/team/repo"},
+		{"11_ssh_scheme_non_git_user_with_port", "ssh://alice@git.acme.com:22/team/repo.git", "https://git.acme.com/team/repo"},
+		{"12_scp_non_git_user", "alice@git.acme.com:team/repo.git", "https://git.acme.com/team/repo"},
+		{"limitation_scp_with_numeric_segment", "git@host:2222/team/repo.git", "https://host/2222/team/repo"},
+		{"limitation_gitlab_relative_root", "git@example.com:group/project.git", "https://example.com/group/project"},
+		{"limitation_gitlab_custom_web_port", "git@gitlab.acme.com:group/repo.git", "https://gitlab.acme.com/group/repo"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := gitURLToHTTP(tc.input); got != tc.expected {
+				t.Errorf("gitURLToHTTP(%q) = %q, expected %q", tc.input, got, tc.expected)
+			}
+		})
+	}
+}
+
+func TestRepoTypeDetection(t *testing.T) {
+	t.Run("T1_T2_url_substring_skips_probe", func(t *testing.T) {
+		emptyDir := t.TempDir()
+		origTransport := probeHTTPClient.Transport
+		origDisabled := httpProbeDisabled
+		defer func() {
+			probeHTTPClient.Transport = origTransport
+			httpProbeDisabled = origDisabled
+			hostTypeCache = make(map[string]string)
+		}()
+		httpProbeDisabled = false
+		hostTypeCache = make(map[string]string)
+
+		probed := false
+		probeHTTPClient.Transport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			probed = true
+			return nil, errors.New("unexpected probe")
+		})
+
+		if got := repoType("https://github.com/org/repo", emptyDir); got != "github" {
+			t.Errorf("T1: expected github, got %s", got)
+		}
+		if got := repoType("https://gitlab.com/org/repo", emptyDir); got != "gitlab" {
+			t.Errorf("T2: expected gitlab, got %s", got)
+		}
+		if probed {
+			t.Errorf("T1/T2: expected no HTTP probe when URL contains github/gitlab")
+		}
+	})
+
+	t.Run("T3_to_T14_classification_and_ordering", func(t *testing.T) {
+		emptyDir := t.TempDir()
+		dirWithGithub := t.TempDir()
+		if err := os.MkdirAll(filepath.Join(dirWithGithub, ".github"), 0755); err != nil {
+			t.Fatal(err)
+		}
+		dirWithGitlabCI := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dirWithGitlabCI, ".gitlab-ci.yml"), []byte("stages: []"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		dirWithGitlabDir := t.TempDir()
+		if err := os.MkdirAll(filepath.Join(dirWithGitlabDir, ".gitlab"), 0755); err != nil {
+			t.Fatal(err)
+		}
+		dirBoth := t.TempDir()
+		if err := os.MkdirAll(filepath.Join(dirBoth, ".github"), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dirBoth, ".gitlab-ci.yml"), []byte("stages: []"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		origTransport := probeHTTPClient.Transport
+		origDisabled := httpProbeDisabled
+		defer func() {
+			probeHTTPClient.Transport = origTransport
+			httpProbeDisabled = origDisabled
+			hostTypeCache = make(map[string]string)
+		}()
+		httpProbeDisabled = false
+		hostTypeCache = make(map[string]string)
+		hitCounts := make(map[string]int)
+
+		probeHTTPClient.Transport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			hitCounts[req.URL.Host]++
+			rec := httptest.NewRecorder()
+			switch req.URL.Host {
+			case "t3-ghe.corp.local":
+				rec.Header().Set("X-GitHub-Request-Id", "req-123")
+			case "t4-ghe-server.corp.local":
+				rec.Header().Set("Server", "GitHub.com")
+			case "t5-gl.corp.local":
+				rec.Header().Set("X-Gitlab-Meta", `{"version":"1"}`)
+			case "t8-unknown.corp.local":
+			case "t11-unreachable.corp.local":
+				return nil, errors.New("connection refused")
+			}
+			rec.WriteHeader(http.StatusOK)
+			return rec.Result(), nil
+		})
+
+		if got := repoType("https://t3-ghe.corp.local/org/repo", emptyDir); got != "github" {
+			t.Errorf("T3: expected github, got %s", got)
+		}
+		if got := repoType("https://t4-ghe-server.corp.local/org/repo", emptyDir); got != "github" {
+			t.Errorf("T4: expected github, got %s", got)
+		}
+		if got := repoType("https://t5-gl.corp.local/org/repo", emptyDir); got != "gitlab" {
+			t.Errorf("T5: expected gitlab, got %s", got)
+		}
+		if got := repoType("https://t5-gl.corp.local/org/repo2", dirWithGithub); got != "gitlab" {
+			t.Errorf("T6: expected gitlab from probe despite .github dir, got %s", got)
+		}
+		if got := repoType("https://t3-ghe.corp.local/org/repo2", dirWithGitlabCI); got != "github" {
+			t.Errorf("T7: expected github from probe despite .gitlab-ci.yml, got %s", got)
+		}
+		if got := repoType("https://t8-unknown.corp.local/org/repo", emptyDir); got != "git" {
+			t.Errorf("T8: expected git, got %s", got)
+		}
+		if got := repoType("https://t8-unknown.corp.local/org/repo2", dirWithGithub); got != "github" {
+			t.Errorf("T9: expected github from fs fallback, got %s", got)
+		}
+		if got := repoType("https://t8-unknown.corp.local/org/repo3", dirWithGitlabCI); got != "gitlab" {
+			t.Errorf("T10a: expected gitlab from .gitlab-ci.yml fallback, got %s", got)
+		}
+		if got := repoType("https://t8-unknown.corp.local/org/repo4", dirWithGitlabDir); got != "gitlab" {
+			t.Errorf("T10b: expected gitlab from .gitlab/ fallback, got %s", got)
+		}
+		if got := repoType("https://t8-unknown.corp.local/org/repo5", dirBoth); got != "github" {
+			t.Errorf("T9/T10 both: expected github favored over gitlab, got %s", got)
+		}
+		if got := repoType("https://t11-unreachable.corp.local/org/repo", emptyDir); got != "git" {
+			t.Errorf("T11: expected git when unreachable and no markers, got %s", got)
+		}
+		if got := repoType("https://t11-unreachable.corp.local/org/repo2", dirWithGithub); got != "github" {
+			t.Errorf("T12: expected github from fs fallback when unreachable, got %s", got)
+		}
+		if got := repoType("/srv/git/repo", emptyDir); got != "git" {
+			t.Errorf("T13a: expected git for local path, got %s", got)
+		}
+		if got := repoType("file:///srv/git/repo", dirWithGithub); got != "github" {
+			t.Errorf("T13b: expected github from fs fallback for file:// URL, got %s", got)
+		}
+		if got := repoType("ssh://git@git.acme.com/team/repo", emptyDir); got != "git" {
+			t.Errorf("T14a: expected git for unconverted ssh:// URL, got %s", got)
+		}
+		if got := repoType("ssh://git@git.acme.com/team/repo", dirWithGitlabCI); got != "gitlab" {
+			t.Errorf("T14b: expected gitlab from fs fallback for unconverted ssh:// URL, got %s", got)
+		}
+		if hitCounts["git.acme.com"] != 0 {
+			t.Errorf("T14: expected no HTTP probe for ssh:// scheme, got %d", hitCounts["git.acme.com"])
+		}
+	})
+
+	t.Run("P1_to_P5_probe_behaviour", func(t *testing.T) {
+		emptyDir := t.TempDir()
+		origTransport := probeHTTPClient.Transport
+		origTimeout := probeHTTPClient.Timeout
+		origDisabled := httpProbeDisabled
+		defer func() {
+			probeHTTPClient.Transport = origTransport
+			probeHTTPClient.Timeout = origTimeout
+			httpProbeDisabled = origDisabled
+			hostTypeCache = make(map[string]string)
+		}()
+		httpProbeDisabled = false
+		hostTypeCache = make(map[string]string)
+		hitCounts := make(map[string]int)
+
+		probeHTTPClient.Transport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			key := req.URL.Scheme + "://" + req.URL.Host
+			hitCounts[key]++
+			rec := httptest.NewRecorder()
+			switch req.URL.Host {
+			case "p1.corp.local":
+				rec.Header().Set("X-Gitlab-Meta", `{"version":"1"}`)
+				rec.WriteHeader(http.StatusOK)
+			case "p2-fail.corp.local":
+				return nil, errors.New("network timeout")
+			case "p3.corp.local":
+				rec.Header().Set("X-GitHub-Request-Id", "abc")
+				rec.WriteHeader(http.StatusOK)
+			case "p4-redirect.corp.local":
+				rec.Header().Set("X-Gitlab-Meta", `{"version":"1"}`)
+				rec.Header().Set("Location", "https://sso.corp.local/login")
+				rec.WriteHeader(http.StatusFound)
+			case "sso.corp.local":
+				t.Errorf("P4: redirect to sso.corp.local should not have been followed")
+				rec.WriteHeader(http.StatusOK)
+			case "p5-slow.corp.local":
+				select {
+				case <-req.Context().Done():
+					return nil, req.Context().Err()
+				case <-time.After(200 * time.Millisecond):
+					rec.Header().Set("X-GitHub-Request-Id", "late")
+					rec.WriteHeader(http.StatusOK)
+				}
+			}
+			return rec.Result(), nil
+		})
+
+		_ = repoType("https://p1.corp.local/team/repo1", emptyDir)
+		_ = repoType("https://p1.corp.local/team/repo2", emptyDir)
+		if hitCounts["https://p1.corp.local"] != 1 {
+			t.Errorf("P1: expected 1 probe for same host, got %d", hitCounts["https://p1.corp.local"])
+		}
+
+		_ = repoType("https://p2-fail.corp.local/team/repo1", emptyDir)
+		_ = repoType("https://p2-fail.corp.local/team/repo2", emptyDir)
+		if hitCounts["https://p2-fail.corp.local"] != 1 {
+			t.Errorf("P2: expected failed host to be probed only once, got %d", hitCounts["https://p2-fail.corp.local"])
+		}
+
+		_ = repoType("http://p3.corp.local/team/repo1", emptyDir)
+		_ = repoType("https://p3.corp.local/team/repo2", emptyDir)
+		if hitCounts["http://p3.corp.local"] != 1 || hitCounts["https://p3.corp.local"] != 1 {
+			t.Errorf("P3: expected http and https origins to be cached separately, got http=%d https=%d", hitCounts["http://p3.corp.local"], hitCounts["https://p3.corp.local"])
+		}
+
+		if got := repoType("https://p4-redirect.corp.local/team/repo", emptyDir); got != "gitlab" {
+			t.Errorf("P4: expected gitlab from 302 response headers without following redirect, got %s", got)
+		}
+
+		probeHTTPClient.Timeout = 30 * time.Millisecond
+		start := time.Now()
+		if got := repoType("https://p5-slow.corp.local/team/repo", emptyDir); got != "git" {
+			t.Errorf("P5: expected git fallback on slow server timeout, got %s", got)
+		}
+		if elapsed := time.Since(start); elapsed > 150*time.Millisecond {
+			t.Errorf("P5: expected timeout within ~30ms, took %v", elapsed)
+		}
+	})
+
+	t.Run("A1_A3_converter_git_and_legacy_unknown", func(t *testing.T) {
+		conv := converter(false, false)
+		data, err := conv([]string{"/base", "my-repo", "https://git.corp.local/team/my-repo", "git", "my-repo"})
+		if err != nil {
+			t.Fatalf("A1: expected converter to accept git type, got error: %v", err)
+		}
+		if data.Type != "git" {
+			t.Errorf("A1: expected data.Type to be git, got %s", data.Type)
+		}
+
+		if _, err := conv([]string{"/base", "my-repo", "https://git.corp.local/team/my-repo", "unknown", "my-repo"}); err == nil {
+			t.Errorf("A3: expected legacy unknown type to be skipped until reindex")
+		}
+	})
 }
 
 func runGit(t *testing.T, dir string, args ...string) {
